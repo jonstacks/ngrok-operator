@@ -37,6 +37,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/ngrok/ngrok-api-go/v5"
+	tunnel_group_backends "github.com/ngrok/ngrok-api-go/v5/backends/tunnel_group"
+	tcp_edges "github.com/ngrok/ngrok-api-go/v5/edges/tcp"
 	"github.com/ngrok/ngrok-api-go/v5/reserved_domains"
 	ingressv1alpha1 "github.com/ngrok/ngrok-ingress-controller/api/v1alpha1"
 	"github.com/ngrok/ngrok-ingress-controller/internal/controllers"
@@ -169,6 +171,17 @@ func runController(ctx context.Context, opts managerOpts) error {
 		TunnelDriver: td,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Tunnel")
+		os.Exit(1)
+	}
+	if err = (&controllers.TCPEdgeReconciler{
+		Client:                   mgr.GetClient(),
+		Log:                      ctrl.Log.WithName("controllers").WithName("tcp-edge"),
+		Scheme:                   mgr.GetScheme(),
+		Recorder:                 mgr.GetEventRecorderFor("tcp-edge-controller"),
+		TCPEdgeClient:            tcp_edges.NewClient(ngrokClientConfig),
+		TunnelGroupBackendClient: tunnel_group_backends.NewClient(ngrokClientConfig),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "TCPEdge")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
