@@ -94,23 +94,21 @@ func (r *TCPEdgeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			if edge.Status.ID != "" {
 				r.Recorder.Event(edge, v1.EventTypeNormal, "Deleting", fmt.Sprintf("Deleting Edge %s", edge.Name))
 				if err := r.TCPEdgeClient.Delete(ctx, edge.Status.ID); err != nil {
-					r.Recorder.Event(edge, v1.EventTypeWarning, "FailedDelete", fmt.Sprintf("Failed to delete Edge %s: %s", edge.Name, err.Error()))
-					return ctrl.Result{}, err
+					if !ngrok.IsNotFound(err) {
+						r.Recorder.Event(edge, v1.EventTypeWarning, "FailedDelete", fmt.Sprintf("Failed to delete Edge %s: %s", edge.Name, err.Error()))
+						return ctrl.Result{}, err
+					}
 				}
-
-				removeFinalizer(edge)
-				if err := r.Update(ctx, edge); err != nil {
-					return ctrl.Result{}, err
-				}
-				r.Recorder.Event(edge, v1.EventTypeNormal, "Deleted", fmt.Sprintf("Deleted Edge %s", edge.Name))
+				edge.Status.ID = ""
 			}
 
-			// We don't have the ID, so can't delete the resource. We'll just remove the finalizer for now.
-			removeFinalizer(edge)
-			if err := r.Update(ctx, edge); err != nil {
+			if err := removeAndSyncFinalizer(ctx, r.Client, edge); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
+
+		r.Recorder.Event(edge, v1.EventTypeNormal, "Deleted", fmt.Sprintf("Deleted Edge %s", edge.Name))
+		return ctrl.Result{}, nil
 	}
 
 	if err := r.reconcileTunnelGroupBackend(ctx, edge); err != nil {
@@ -118,8 +116,7 @@ func (r *TCPEdgeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	err := r.reconcileEdge(ctx, edge)
-	return ctrl.Result{}, err
+	return ctrl.Result{}, r.reconcileEdge(ctx, edge)
 }
 
 func (r *TCPEdgeReconciler) reconcileTunnelGroupBackend(ctx context.Context, edge *ingressv1alpha1.TCPEdge) error {
