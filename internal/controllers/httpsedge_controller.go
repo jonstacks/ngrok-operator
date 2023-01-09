@@ -187,9 +187,11 @@ func (r *HTTPSEdgeReconciler) reconcileRoutes(ctx context.Context, edge *ingress
 				Backend: &ngrok.EndpointBackendMutate{
 					BackendID: backend.ID,
 				},
-				Compression: &ngrok.EndpointCompression{
+			}
+			if routeSpec.Compression != nil {
+				req.Compression = &ngrok.EndpointCompression{
 					Enabled: routeSpec.Compression.Enabled,
-				},
+				}
 			}
 			route, err = r.HTTPSEdgeRoutesClient.Create(ctx, req)
 		} else {
@@ -203,9 +205,11 @@ func (r *HTTPSEdgeReconciler) reconcileRoutes(ctx context.Context, edge *ingress
 				Backend: &ngrok.EndpointBackendMutate{
 					BackendID: backend.ID,
 				},
-				Compression: &ngrok.EndpointCompression{
+			}
+			if routeSpec.Compression != nil {
+				req.Compression = &ngrok.EndpointCompression{
 					Enabled: routeSpec.Compression.Enabled,
-				},
+				}
 			}
 			route, err = r.HTTPSEdgeRoutesClient.Update(ctx, req)
 		}
