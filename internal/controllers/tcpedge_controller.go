@@ -30,6 +30,7 @@ import (
 	"reflect"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -126,6 +127,11 @@ func (r *TCPEdgeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	if err := r.reconcileTunnel(ctx, edge); err != nil {
+		log.Error(err, "unable to reconcile tunnel")
+		return ctrl.Result{}, err
+	}
+
 	if err := r.reserveAddrIfEmpty(ctx, edge); err != nil {
 		log.Error(err, "unable to create tcp address")
 		return ctrl.Result{}, err
@@ -210,7 +216,10 @@ func (r *TCPEdgeReconciler) reconcileEdge(ctx context.Context, edge *ingressv1al
 			}
 		}
 
-		return r.updateEdgeStatus(ctx, edge, resp)
+		if err := r.updateEdgeStatus(ctx, edge, resp); err != nil {
+			return err
+		}
+		return r.updateIPRestrictionRouteModule(ctx, edge, resp)
 	}
 
 	// Try to find the edge by the backend labels
@@ -242,7 +251,6 @@ func (r *TCPEdgeReconciler) reconcileEdge(ctx context.Context, edge *ingressv1al
 	}
 
 	return r.updateIPRestrictionRouteModule(ctx, edge, resp)
-
 }
 
 func (r *TCPEdgeReconciler) findEdgeByBackendLabels(ctx context.Context, backendLabels map[string]string) (*ngrok.TCPEdge, error) {
@@ -382,4 +390,43 @@ func (r *TCPEdgeReconciler) listTCPEdgesForIPPolicy(obj client.Object) []reconci
 
 	r.Log.Info("IPPolicy change triggered TCPEdge reconciliation", "count", len(recs), "policy", policy.Name, "namespace", policy.Namespace)
 	return recs
+}
+
+func (r *TCPEdgeReconciler) reconcileTunnel(ctx context.Context, edge *ingressv1alpha1.TCPEdge) error {
+	labels := edge.Spec.Backend.Labels
+	service := labels["k8s.ngrok.com/service"]
+	port := labels["k8s.ngrok.com/port"]
+	namespace := labels["k8s.ngrok.com/namespace"]
+	tunnelName := fmt.Sprintf("%s-%s", service, port)
+	forwardsTo := fmt.Sprintf("%s.%s.svc.cluster.local:%s", service, namespace, port)
+
+	tunnel := &ingressv1alpha1.Tunnel{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: edge.Namespace,
+			Name:      tunnelName,
+		},
+		Spec: ingressv1alpha1.TunnelSpec{
+			ForwardsTo: forwardsTo,
+			Labels:     labels,
+		},
+	}
+
+	found := &ingressv1alpha1.Tunnel{}
+	selector := types.NamespacedName{Namespace: edge.Namespace, Name: tunnelName}
+	r.Log.Info("Searching for matching tunnel")
+	err := r.Client.Get(ctx, selector, found)
+	if err != nil {
+		if client.IgnoreNotFound(err) != nil {
+			return err
+		}
+
+		r.Log.Info("Creating a new tunnel")
+		// Tunnel doesn't exist, create it
+		return r.Client.Create(ctx, tunnel)
+	}
+
+	// Tunnel exists, update it
+	r.Log.Info("Updating existing tunnel")
+	found.Spec = tunnel.Spec
+	return r.Client.Update(ctx, found)
 }
