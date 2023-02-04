@@ -208,6 +208,7 @@ func (r *TCPEdgeReconciler) reconcileEdge(ctx context.Context, edge *ingressv1al
 				Metadata:    pointer.String(edge.Spec.Metadata),
 				Hostports:   edge.Status.Hostports,
 				Backend: &ngrok.EndpointBackendMutate{
+					Enabled:   pointer.Bool(true),
 					BackendID: edge.Status.Backend.ID,
 				},
 			})
@@ -238,6 +239,7 @@ func (r *TCPEdgeReconciler) reconcileEdge(ctx context.Context, edge *ingressv1al
 		Description: edge.Spec.Description,
 		Metadata:    edge.Spec.Metadata,
 		Backend: &ngrok.EndpointBackendMutate{
+			Enabled:   pointer.Bool(true),
 			BackendID: edge.Status.Backend.ID,
 		},
 	})
@@ -425,8 +427,6 @@ func (r *TCPEdgeReconciler) reconcileTunnel(ctx context.Context, edge *ingressv1
 		return r.Client.Create(ctx, tunnel)
 	}
 
-	// Tunnel exists, update it
-	r.Log.Info("Updating existing tunnel")
-	found.Spec = tunnel.Spec
-	return r.Client.Update(ctx, found)
+	// Tunnel exists, do nothing
+	return nil
 }
