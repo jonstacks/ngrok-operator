@@ -3,6 +3,7 @@ package ngrokapi
 import (
 	"github.com/ngrok/ngrok-api-go/v5"
 	tunnel_group_backends "github.com/ngrok/ngrok-api-go/v5/backends/tunnel_group"
+	"github.com/ngrok/ngrok-api-go/v5/certificate_authorities"
 	https_edges "github.com/ngrok/ngrok-api-go/v5/edges/https"
 	https_edge_routes "github.com/ngrok/ngrok-api-go/v5/edges/https_routes"
 	tcp_edges "github.com/ngrok/ngrok-api-go/v5/edges/tcp"
@@ -13,6 +14,7 @@ import (
 )
 
 type Clientset interface {
+	CertificateAuthorities() *certificate_authorities.Client
 	Domains() *reserved_domains.Client
 	EdgeModules() EdgeModulesClientset
 	HTTPSEdges() *https_edges.Client
@@ -25,30 +27,36 @@ type Clientset interface {
 }
 
 type DefaultClientset struct {
-	domainsClient             *reserved_domains.Client
-	edgeModulesClientset      *defaultEdgeModulesClientset
-	httpsEdgesClient          *https_edges.Client
-	httpsEdgeRoutesClient     *https_edge_routes.Client
-	ipPoliciesClient          *ip_policies.Client
-	ipPolicyRulesClient       *ip_policy_rules.Client
-	tcpAddrsClient            *reserved_addrs.Client
-	tcpEdgesClient            *tcp_edges.Client
-	tunnelGroupBackendsClient *tunnel_group_backends.Client
+	certificateAuthoritiesClient *certificate_authorities.Client
+	domainsClient                *reserved_domains.Client
+	edgeModulesClientset         *defaultEdgeModulesClientset
+	httpsEdgesClient             *https_edges.Client
+	httpsEdgeRoutesClient        *https_edge_routes.Client
+	ipPoliciesClient             *ip_policies.Client
+	ipPolicyRulesClient          *ip_policy_rules.Client
+	tcpAddrsClient               *reserved_addrs.Client
+	tcpEdgesClient               *tcp_edges.Client
+	tunnelGroupBackendsClient    *tunnel_group_backends.Client
 }
 
 // NewClientSet creates a new ClientSet from an ngrok client config.
 func NewClientSet(config *ngrok.ClientConfig) *DefaultClientset {
 	return &DefaultClientset{
-		domainsClient:             reserved_domains.NewClient(config),
-		edgeModulesClientset:      newEdgeModulesClientset(config),
-		httpsEdgesClient:          https_edges.NewClient(config),
-		httpsEdgeRoutesClient:     https_edge_routes.NewClient(config),
-		ipPoliciesClient:          ip_policies.NewClient(config),
-		ipPolicyRulesClient:       ip_policy_rules.NewClient(config),
-		tcpAddrsClient:            reserved_addrs.NewClient(config),
-		tcpEdgesClient:            tcp_edges.NewClient(config),
-		tunnelGroupBackendsClient: tunnel_group_backends.NewClient(config),
+		certificateAuthoritiesClient: certificate_authorities.NewClient(config),
+		domainsClient:                reserved_domains.NewClient(config),
+		edgeModulesClientset:         newEdgeModulesClientset(config),
+		httpsEdgesClient:             https_edges.NewClient(config),
+		httpsEdgeRoutesClient:        https_edge_routes.NewClient(config),
+		ipPoliciesClient:             ip_policies.NewClient(config),
+		ipPolicyRulesClient:          ip_policy_rules.NewClient(config),
+		tcpAddrsClient:               reserved_addrs.NewClient(config),
+		tcpEdgesClient:               tcp_edges.NewClient(config),
+		tunnelGroupBackendsClient:    tunnel_group_backends.NewClient(config),
 	}
+}
+
+func (c *DefaultClientset) CertificateAuthorities() *certificate_authorities.Client {
+	return c.certificateAuthoritiesClient
 }
 
 func (c *DefaultClientset) Domains() *reserved_domains.Client {
