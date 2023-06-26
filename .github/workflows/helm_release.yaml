@@ -64,4 +64,3 @@ jobs:
           CR_SKIP_EXISTING: "true"
         with:
           charts_dir: helm
-          skip_existing: true
