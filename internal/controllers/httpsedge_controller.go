@@ -223,16 +223,19 @@ func (r *HTTPSEdgeReconciler) reconcileRoutes(ctx context.Context, edge *ingress
 				Match:     routeSpec.Match,
 				MatchType: routeSpec.MatchType,
 			}
-			route, err = edgeRoutes.Create(ctx, req)
+			if route, err = edgeRoutes.Create(ctx, req); err != nil {
+				return err
+			}
+			r.Log.V(1).Info("Created new route", "edgeID", edge.Status.ID, "route", route)
 		} else {
 			req := &ngrok.EdgeRouteItem{
 				ID:     match.ID,
 				EdgeID: edge.Status.ID,
 			}
-			route, err = edgeRoutes.Get(ctx, req)
-		}
-		if err != nil {
-			return err
+			if route, err = edgeRoutes.Get(ctx, req); err != nil {
+				return err
+			}
+			r.Log.V(1).Info("Found existing route", "edgeID", edge.Status.ID, "route", route)
 		}
 
 		if isMigratingAuthProviders(route, &routeSpec) {
@@ -280,6 +283,7 @@ func (r *HTTPSEdgeReconciler) reconcileRoutes(ctx context.Context, edge *ingress
 		if err != nil {
 			return err
 		}
+		r.Log.V(1).Info("Updated route", "edgeID", edge.Status.ID, "route", route)
 
 		// With the route modules successfully applied and the edge updated, we now update the route's backend status
 		if route.Backend != nil {
@@ -387,7 +391,8 @@ func (r *HTTPSEdgeReconciler) updateStatus(ctx context.Context, edge *ingressv1a
 // no match in the ingressv1alpha1.HTTPSEdge.Status.Routes, then nil is returned.
 func (r *HTTPSEdgeReconciler) getMatchingRouteFromEdgeStatus(edge *ingressv1alpha1.HTTPSEdge, route ingressv1alpha1.HTTPSEdgeRouteSpec) *ingressv1alpha1.HTTPSEdgeRouteStatus {
 	for _, routeStatus := range edge.Status.Routes {
-		if route.MatchType == routeStatus.MatchType && route.Match == routeStatus.Match {
+		if route.Match == routeStatus.Match {
+			r.Log.V(3).Info("Found matching route in edge status", "route", route, "edge.status.route", routeStatus)
 			return &routeStatus
 		}
 	}
