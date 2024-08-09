@@ -453,7 +453,7 @@ type baseSubresourceReconciler[T any, PT interface {
 	owned         []PT
 	listOwned     func(context.Context, client.Client, ...client.ListOption) ([]T, error)
 	matches       func(T, T) bool
-	mergeExisting func(T, PT)
+	mergeExisting func(context.Context, T, PT)
 	updateStatus  func(context.Context, client.Client, *corev1.Service, PT) error
 }
 
@@ -517,14 +517,14 @@ func (r *baseSubresourceReconciler[T, PT]) Reconcile(ctx context.Context, c clie
 	if len(r.owned) == 1 {
 		var e = r.owned[0]
 
-		log.Info(fmt.Sprintf("Updating %T", e), "desired", d, "existing", e)
+		log.Info(fmt.Sprintf("Updating %T", e), "desired", *d, "existing", *e)
 		// Fetch the existing resource as it may have been updated
 		if err := c.Get(ctx, client.ObjectKeyFromObject(e), d); err != nil {
 			return err
 		}
 
 		log.V(3).Info(fmt.Sprintf("Merging %T", e), "desired", []PT{d}, "existing", []PT{e})
-		r.mergeExisting(*d, e)
+		r.mergeExisting(ctx, *d, e)
 		log.V(3).Info(fmt.Sprintf("Merged %T", e), "merged", []PT{e})
 
 		// Update the resource
@@ -570,8 +570,11 @@ func newServiceTCPEdgeReconciler() serviceSubresourceReconciler {
 		matches: func(desired, existing ingressv1alpha1.TCPEdge) bool {
 			return reflect.DeepEqual(existing.Spec, desired.Spec)
 		},
-		mergeExisting: func(desired ingressv1alpha1.TCPEdge, existing *ingressv1alpha1.TCPEdge) {
+		mergeExisting: func(ctx context.Context, desired ingressv1alpha1.TCPEdge, existing *ingressv1alpha1.TCPEdge) {
+			log := ctrl.LoggerFrom(ctx)
+			log.V(3).Info("Pre-merge existing TCPEdge", "desired.Spec", desired.Spec, "existing", existing.Spec)
 			existing.Spec = desired.Spec
+			log.V(3).Info("Post-merge existing TCPEdge", "desired.Spec", desired.Spec, "existing", existing.Spec)
 		},
 		updateStatus: func(ctx context.Context, c client.Client, svc *corev1.Service, edge *ingressv1alpha1.TCPEdge) error {
 			clearIngressStatus := func(svc *corev1.Service) error {
@@ -615,8 +618,11 @@ func newServiceTLSEdgeReconciler() serviceSubresourceReconciler {
 		matches: func(desired, existing ingressv1alpha1.TLSEdge) bool {
 			return reflect.DeepEqual(existing.Spec, desired.Spec)
 		},
-		mergeExisting: func(desired ingressv1alpha1.TLSEdge, existing *ingressv1alpha1.TLSEdge) {
+		mergeExisting: func(ctx context.Context, desired ingressv1alpha1.TLSEdge, existing *ingressv1alpha1.TLSEdge) {
+			log := ctrl.LoggerFrom(ctx)
+			log.V(3).Info("Pre-merge existing TLSEdge", "desired.Spec", desired.Spec, "existing", existing.Spec)
 			existing.Spec = desired.Spec
+			log.V(3).Info("Post-merge existing TLSEdge", "desired.Spec", desired.Spec, "existing", existing.Spec)
 		},
 		updateStatus: func(ctx context.Context, c client.Client, svc *corev1.Service, edge *ingressv1alpha1.TLSEdge) error {
 			clearIngressStatus := func(svc *corev1.Service) error {
@@ -670,8 +676,11 @@ func newServiceTunnelReconciler() serviceSubresourceReconciler {
 		matches: func(desired, existing ingressv1alpha1.Tunnel) bool {
 			return reflect.DeepEqual(existing.Spec, desired.Spec)
 		},
-		mergeExisting: func(desired ingressv1alpha1.Tunnel, existing *ingressv1alpha1.Tunnel) {
+		mergeExisting: func(ctx context.Context, desired ingressv1alpha1.Tunnel, existing *ingressv1alpha1.Tunnel) {
+			log := ctrl.LoggerFrom(ctx)
+			log.V(3).Info("Pre-merge existing Tunnel", "desired.Spec", desired.Spec, "existing", existing.Spec)
 			existing.Spec = desired.Spec
+			log.V(3).Info("Post-merge existing Tunnel", "desired.Spec", desired.Spec, "existing", existing.Spec)
 		},
 		updateStatus: func(ctx context.Context, c client.Client, svc *corev1.Service, tunnel *ingressv1alpha1.Tunnel) error {
 			// Tunnels don't interact with the service status
