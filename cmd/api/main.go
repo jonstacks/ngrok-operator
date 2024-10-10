@@ -371,7 +371,7 @@ func registerOperatorWithNgrokAPI(ctx context.Context, k8sClient client.Client, 
 }
 
 // enableIngressFeatureSet enables the Ingress feature set for the operator
-func enableIngressFeatureSet(ctx context.Context, opts managerOpts, mgr ctrl.Manager, driver *store.Driver, ngrokClientset ngrokapi.Clientset) error {
+func enableIngressFeatureSet(_ context.Context, opts managerOpts, mgr ctrl.Manager, driver *store.Driver, ngrokClientset ngrokapi.Clientset) error {
 	if err := (&ingresscontroller.IngressReconciler{
 		Client:               mgr.GetClient(),
 		Log:                  ctrl.Log.WithName("controllers").WithName("ingress"),
@@ -478,7 +478,7 @@ func enableIngressFeatureSet(ctx context.Context, opts managerOpts, mgr ctrl.Man
 }
 
 // enableGatewayFeatureSet enables the Gateway feature set for the operator
-func enableGatewayFeatureSet(ctx context.Context, opts managerOpts, mgr ctrl.Manager, driver *store.Driver, ngrokClientset ngrokapi.Clientset) error {
+func enableGatewayFeatureSet(_ context.Context, _ managerOpts, mgr ctrl.Manager, driver *store.Driver, _ ngrokapi.Clientset) error {
 	if err := (&gatewaycontroller.GatewayReconciler{
 		Client:   mgr.GetClient(),
 		Log:      ctrl.Log.WithName("controllers").WithName("Gateway"),
@@ -505,7 +505,7 @@ func enableGatewayFeatureSet(ctx context.Context, opts managerOpts, mgr ctrl.Man
 }
 
 // enableBindingsFeatureSet enables the Bindings feature set for the operator
-func enableBindingsFeatureSet(ctx context.Context, opts managerOpts, mgr ctrl.Manager, driver *store.Driver, ngrokClientset ngrokapi.Clientset) error {
+func enableBindingsFeatureSet(_ context.Context, opts managerOpts, mgr ctrl.Manager, _ *store.Driver, _ ngrokapi.Clientset) error {
 	// Global BindingConfiguration
 	if err := (&bindingscontroller.BindingConfigurationReconciler{
 		Client:    mgr.GetClient(),
