@@ -33,7 +33,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -74,26 +73,20 @@ func main() {
 
 type managerOpts struct {
 	// flags
-	metricsAddr           string
-	electionID            string
-	probeAddr             string
-	serverAddr            string
-	apiURL                string
-	ingressControllerName string
-	ingressWatchNamespace string
-	ngrokMetadata         string
-	description           string
-	managerName           string
-	zapOpts               *zap.Options
-	clusterDomain         string
+	metricsAddr string
+	probeAddr   string
+	serverAddr  string
+	description string
+	managerName string
+	zapOpts     *zap.Options
 
 	// feature flags
 	enableFeatureIngress  bool
 	enableFeatureGateway  bool
 	enableFeatureBindings bool
 
-	region string
-
+	// agent(tunnel driver) flags
+	region  string
 	rootCAs string
 }
 
@@ -108,18 +101,13 @@ func cmd() *cobra.Command {
 
 	c.Flags().StringVar(&opts.metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to")
 	c.Flags().StringVar(&opts.probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	c.Flags().StringVar(&opts.electionID, "election-id", "ngrok-operator-leader", "The name of the configmap that is used for holding the leader lock")
-	c.Flags().StringVar(&opts.ngrokMetadata, "ngrokMetadata", "", "A comma separated list of key=value pairs such as 'key1=value1,key2=value2' to be added to ngrok api resources as labels")
 	c.Flags().StringVar(&opts.description, "description", "Created by the ngrok-operator", "Description for this installation")
+	// TODO(operator-rename): Same as above, but for the manager name.
+	c.Flags().StringVar(&opts.managerName, "manager-name", "agent-manager", "Manager name to identify unique ngrok operator agent instances")
+
+	// agent(tunnel driver) flags
 	c.Flags().StringVar(&opts.region, "region", "", "The region to use for ngrok tunnels")
 	c.Flags().StringVar(&opts.serverAddr, "server-addr", "", "The address of the ngrok server to use for tunnels")
-	c.Flags().StringVar(&opts.apiURL, "api-url", "", "The base URL to use for the ngrok api")
-	// TODO(operator-rename): This probably needs to be on a per controller basis. Each of the controllers will have their own value or we migrate this to k8s.ngrok.com/ngrok-operator.
-	c.Flags().StringVar(&opts.ingressControllerName, "ingress-controller-name", "k8s.ngrok.com/ingress-controller", "The name of the controller to use for matching ingresses classes")
-	c.Flags().StringVar(&opts.ingressWatchNamespace, "ingress-watch-namespace", "", "Namespace to watch for Kubernetes Ingress resources. Defaults to all namespaces.")
-	// TODO(operator-rename): Same as above, but for the manager name.
-	c.Flags().StringVar(&opts.managerName, "manager-name", "ngrok-ingress-controller-manager", "Manager name to identify unique ngrok ingress controller instances")
-	c.Flags().StringVar(&opts.clusterDomain, "cluster-domain", "svc.cluster.local", "Cluster domain used in the cluster")
 	c.Flags().StringVar(&opts.rootCAs, "root-cas", "trusted", "trusted (default) or host: use the trusted ngrok agent CA or the host CA")
 
 	// feature flags
@@ -148,16 +136,7 @@ func runController(ctx context.Context, opts managerOpts) error {
 		},
 		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		HealthProbeBindAddress: opts.probeAddr,
-		LeaderElection:         opts.electionID != "",
-		LeaderElectionID:       opts.electionID,
-	}
-
-	if opts.ingressWatchNamespace != "" {
-		options.Cache = cache.Options{
-			DefaultNamespaces: map[string]cache.Config{
-				opts.ingressWatchNamespace: {},
-			},
-		}
+		LeaderElection:         false,
 	}
 
 	// create default config and clientset for use outside the mgr.Start() blocking loop

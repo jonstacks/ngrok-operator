@@ -250,14 +250,18 @@ endef
 
 ##@ Helm
 
+.PHONY: _helm_setup
+_helm_setup: ## Setup helm dependencies
+	$(MAKE) -C $(HELM_CHART_DIR) setup
+
 .PHONY: helm-lint
-helm-lint: ## Lint the helm chart
+helm-lint: _helm_setup ## Lint the helm chart
 	$(MAKE) -C $(HELM_CHART_DIR) lint
 
 .PHONY: helm-test
-helm-test: ## Run helm unittest plugin
+helm-test: _helm_setup ## Run helm unittest plugin
 	$(MAKE) -C $(HELM_CHART_DIR) test
 
 .PHONY: helm-update-snapshots
-helm-update-snapshots: ## Update helm unittest snapshots
+helm-update-snapshots: _helm_setup ## Update helm unittest snapshots
 	$(MAKE) -C $(HELM_CHART_DIR) update-snapshots

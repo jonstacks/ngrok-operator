@@ -52,10 +52,10 @@ Should match all-options snapshot:
                   weight: 1
           containers:
             - args:
-                - --description="The official ngrok Kubernetes Operator."
-                - --ingress-controller-name=k8s.ngrok.com/ingress-controller
                 - --enable-feature-ingress=true
                 - --enable-feature-gateway=false
+                - --description="The official ngrok Kubernetes Operator."
+                - --ingress-controller-name=k8s.ngrok.com/ingress-controller
                 - --zap-log-level=info
                 - --zap-stacktrace-level=error
                 - --zap-encoder=json
@@ -71,11 +71,6 @@ Should match all-options snapshot:
                   valueFrom:
                     secretKeyRef:
                       key: API_KEY
-                      name: RELEASE-NAME-ngrok-operator-credentials
-                - name: NGROK_AUTHTOKEN
-                  valueFrom:
-                    secretKeyRef:
-                      key: AUTHTOKEN
                       name: RELEASE-NAME-ngrok-operator-credentials
                 - name: POD_NAMESPACE
                   valueFrom:
@@ -699,10 +694,10 @@ Should match default snapshot:
                   weight: 1
           containers:
             - args:
-                - --description="The official ngrok Kubernetes Operator."
-                - --ingress-controller-name=k8s.ngrok.com/ingress-controller
                 - --enable-feature-ingress=true
                 - --enable-feature-gateway=false
+                - --description="The official ngrok Kubernetes Operator."
+                - --ingress-controller-name=k8s.ngrok.com/ingress-controller
                 - --zap-log-level=info
                 - --zap-stacktrace-level=error
                 - --zap-encoder=json
@@ -718,11 +713,6 @@ Should match default snapshot:
                   valueFrom:
                     secretKeyRef:
                       key: API_KEY
-                      name: RELEASE-NAME-ngrok-operator-credentials
-                - name: NGROK_AUTHTOKEN
-                  valueFrom:
-                    secretKeyRef:
-                      key: AUTHTOKEN
                       name: RELEASE-NAME-ngrok-operator-credentials
                 - name: POD_NAMESPACE
                   valueFrom:
