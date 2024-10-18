@@ -671,10 +671,6 @@ func newServiceTLSEdgeReconciler() serviceSubresourceReconciler {
 				return c.Status().Update(ctx, svc)
 			}
 
-			if edge.Status.CNAMETargets == nil {
-				return clearIngressStatus(svc)
-			}
-
 			domain, err := parser.GetStringAnnotation("domain", svc)
 			if err != nil {
 				if errors.IsMissingAnnotations(err) {
@@ -684,20 +680,30 @@ func newServiceTLSEdgeReconciler() serviceSubresourceReconciler {
 			}
 
 			v, ok := edge.Status.CNAMETargets[domain]
-			if !ok {
-				return clearIngressStatus(svc)
-			}
-
-			svc.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
-				{
-					Hostname: v,
-					Ports: []corev1.PortStatus{
-						{
-							Port:     443,
-							Protocol: corev1.ProtocolTCP,
+			if ok { // Custom domain case
+				svc.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
+					{
+						Hostname: v,
+						Ports: []corev1.PortStatus{
+							{
+								Port:     443,
+								Protocol: corev1.ProtocolTCP,
+							},
 						},
 					},
-				},
+				}
+			} else { // ngrok managed domain case
+				svc.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
+					{
+						Hostname: domain,
+						Ports: []corev1.PortStatus{
+							{
+								Port:     443,
+								Protocol: corev1.ProtocolTCP,
+							},
+						},
+					},
+				}
 			}
 
 			return c.Status().Update(ctx, svc)
