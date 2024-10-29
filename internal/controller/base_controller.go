@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/ngrok/ngrok-api-go/v5"
+	ngrokv5 "github.com/ngrok/ngrok-api-go/v5"
+	ngrokv6 "github.com/ngrok/ngrok-api-go/v6"
 	"github.com/ngrok/ngrok-operator/internal/util"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -98,7 +99,7 @@ func (self *BaseController[T]) Reconcile(ctx context.Context, req ctrl.Request, 
 				sid := self.StatusID(obj)
 				self.Recorder.Event(obj, v1.EventTypeNormal, "Deleting", fmt.Sprintf("Deleting %s", objName))
 				if err := self.Delete(ctx, obj); err != nil {
-					if !ngrok.IsNotFound(err) {
+					if !ngrokv5.IsNotFound(err) && !ngrokv6.IsNotFound(err) {
 						self.Recorder.Event(obj, v1.EventTypeWarning, "DeleteError", fmt.Sprintf("Failed to delete %s: %s", objName, err.Error()))
 						return self.handleErr(DeleteOp, obj, err)
 					}
@@ -154,12 +155,25 @@ func (self *BaseController[T]) ReconcileStatus(ctx context.Context, obj T, origE
 
 // CtrlResultForErr is a helper function to convert an error into a ctrl.Result passing through ngrok error mappings
 func CtrlResultForErr(err error) (ctrl.Result, error) {
-	var nerr *ngrok.Error
-	if errors.As(err, &nerr) {
+	var n5err *ngrokv5.Error
+	if errors.As(err, &n5err) {
 		switch {
-		case nerr.StatusCode >= 500:
+		case n5err.StatusCode >= 500:
 			return ctrl.Result{}, err
-		case nerr.StatusCode == http.StatusTooManyRequests:
+		case n5err.StatusCode == http.StatusTooManyRequests:
+			return ctrl.Result{RequeueAfter: time.Minute}, nil
+		default:
+			// the rest are client errors, we don't retry by default
+			return ctrl.Result{}, nil
+		}
+	}
+
+	var n6err *ngrokv6.Error
+	if errors.As(err, &n6err) {
+		switch {
+		case n6err.StatusCode >= 500:
+			return ctrl.Result{}, err
+		case n6err.StatusCode == http.StatusTooManyRequests:
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		default:
 			// the rest are client errors, we don't retry by default
