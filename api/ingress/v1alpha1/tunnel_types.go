@@ -48,6 +48,9 @@ type TunnelSpec struct {
 
 	// The appProtocol for the backend. Currently only supports `http2`
 	AppProtocol string `json:"appProtocol,omitempty"`
+
+	// URL for the Endpoint
+	URL string `json:"url,omitempty"`
 }
 
 // BackendConfig defines the configuration for backend connections to services.
