@@ -276,7 +276,11 @@ func (td *TunnelDriver) CreateTunnel(ctx context.Context, name string, spec ingr
 		defer td.stopTunnel(context.Background(), tun)
 	}
 
-	tun, err := session.Listen(ctx, td.buildTunnelConfig(spec.Labels, spec.ForwardsTo, spec.AppProtocol))
+	tunConfig, err := td.buildTunnelConfig(spec)
+	if err != nil {
+		return err
+	}
+	tun, err := session.Listen(ctx, tunConfig)
 	if err != nil {
 		return err
 	}
@@ -317,7 +321,18 @@ func (td *TunnelDriver) stopTunnel(ctx context.Context, tun ngrok.Tunnel) error 
 	return tun.CloseWithContext(ctx)
 }
 
-func (td *TunnelDriver) buildTunnelConfig(labels map[string]string, destination, appProtocol string) config.Tunnel {
+func (td *TunnelDriver) buildTunnelConfig(spec ingressv1alpha1.TunnelSpec) (config.Tunnel, error) {
+	// If we have labels, try to build a labeled tunnel
+	if len(spec.Labels) > 0 {
+		return td.buildLabeledTunnelConfig(spec.Labels, spec.ForwardsTo, spec.AppProtocol), nil
+	}
+	if spec.URL != "" && strings.HasPrefix(spec.URL, "http://") {
+		return td.buildHTTPEndpointConfig(spec.URL, spec.ForwardsTo, spec.AppProtocol), nil
+	}
+	return nil, fmt.Errorf("invalid tunnel spec: %v", spec)
+}
+
+func (td *TunnelDriver) buildLabeledTunnelConfig(labels map[string]string, destination, appProtocol string) config.Tunnel {
 	opts := []config.LabeledTunnelOption{}
 	for key, value := range labels {
 		opts = append(opts, config.WithLabel(key, value))
@@ -325,6 +340,14 @@ func (td *TunnelDriver) buildTunnelConfig(labels map[string]string, destination,
 	opts = append(opts, config.WithForwardsTo(destination))
 	opts = append(opts, config.WithAppProtocol(appProtocol))
 	return config.LabeledTunnel(opts...)
+}
+
+func (td *TunnelDriver) buildHTTPEndpointConfig(url, destination, appProtocol string) config.Tunnel {
+	opts := []config.HTTPEndpointOption{}
+	opts = append(opts, config.WithURL(url))
+	opts = append(opts, config.WithForwardsTo(destination))
+	opts = append(opts, config.WithAppProtocol(appProtocol))
+	return config.HTTPEndpoint(opts...)
 }
 
 func handleConnections(ctx context.Context, dialer Dialer, tun ngrok.Tunnel, dest string, protocol string, appProtocol string) {
