@@ -426,6 +426,17 @@ func (td *TunnelDriver) CreateAgentEndpoint(ctx context.Context, name string, sp
 		return err
 	}
 
+	upstreamPort, err := strconv.Atoi(upstreamURL.Port())
+	if err != nil {
+		// The port is already validated earlier but this is just to be safe on the Atoi call
+		return fmt.Errorf("invalid spec.upstream.url port (%q): %w", upstreamURL.Port(), err)
+	}
+
+	upstreamTLS := false
+	if upstreamURL.Scheme == "tls" || upstreamURL.Scheme == "https" {
+		upstreamTLS = true
+	}
+
 	var tunnelConfig config.Tunnel
 	commonOpts := []commonEndpointOption{
 		config.WithURL(spec.URL),
@@ -452,6 +463,9 @@ func (td *TunnelDriver) CreateAgentEndpoint(ctx context.Context, name string, sp
 		tunnelConfig = config.HTTPEndpoint(opts...)
 	case "tls":
 		opts := []config.TLSEndpointOption{}
+		opts = append(opts, config.WithTLSTermination(
+			config.WithTLSTerminationAt(config.TLSAtEdge),
+		))
 		for _, o := range commonOpts {
 			opts = append(opts, o)
 		}
@@ -469,17 +483,6 @@ func (td *TunnelDriver) CreateAgentEndpoint(ctx context.Context, name string, sp
 	tun, err = session.Listen(ctx, tunnelConfig)
 	if err != nil {
 		return err
-	}
-
-	upstreamPort, err := strconv.Atoi(upstreamURL.Port())
-	if err != nil {
-		// The port is already validated earlier but this is just to be safe on the Atoi call
-		return fmt.Errorf("invalid spec.upstream.url port (%q): %w", upstreamURL.Port(), err)
-	}
-
-	upstreamTLS := false
-	if upstreamURL.Scheme == "tls" || upstreamURL.Scheme == "https" {
-		upstreamTLS = true
 	}
 
 	// Start forwarding connections
