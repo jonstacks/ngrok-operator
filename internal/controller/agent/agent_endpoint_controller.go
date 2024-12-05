@@ -254,8 +254,8 @@ func (r *AgentEndpointReconciler) findTrafficPolicyByName(ctx context.Context, t
 func (r *AgentEndpointReconciler) ensureDomainExists(ctx context.Context, aep *ngrokv1alpha1.AgentEndpoint) error {
 	parsedURL, err := tunneldriver.ParseAndSanitizeURL(aep.Spec.URL)
 	if err != nil {
-		r.Recorder.Event(aep, v1.EventTypeWarning, "InvalidURL", fmt.Sprintf("Failed to parse URL: %s", aep.Spec.URL))
-		return fmt.Errorf("failed to parse URL %q from AgentEndpoint \"%s.%s\"", aep.Spec.URL, aep.Name, aep.Namespace)
+		r.Recorder.Event(aep, v1.EventTypeWarning, "InvalidURL", fmt.Sprintf("Failed to parse URL '%s': %s", aep.Spec.URL, err))
+		return fmt.Errorf("failed to parse URL %q from AgentEndpoint \"%s.%s\": %w", aep.Spec.URL, aep.Name, aep.Namespace, err)
 	}
 
 	// TODO: generate a domain for blank strings
