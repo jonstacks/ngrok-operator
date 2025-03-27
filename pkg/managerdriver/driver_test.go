@@ -1,7 +1,6 @@
 package managerdriver
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -60,7 +59,7 @@ var _ = Describe("Driver", func() {
 
 	Describe("Seed", func() {
 		It("Should not error", func() {
-			err := driver.Seed(context.Background(), fake.NewClientBuilder().WithScheme(scheme).Build())
+			err := driver.Seed(GinkgoT().Context(), fake.NewClientBuilder().WithScheme(scheme).Build())
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("Should add all the found items to the store", func() {
@@ -75,7 +74,7 @@ var _ = Describe("Driver", func() {
 			obs := []runtime.Object{&ic1, &ic2, &i1, &i2, &d1, &d2, &e1, &e2}
 
 			c := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(obs...).Build()
-			err := driver.Seed(context.Background(), c)
+			err := driver.Seed(GinkgoT().Context(), c)
 			Expect(err).ToNot(HaveOccurred())
 
 			for _, obj := range obs {
@@ -92,7 +91,7 @@ var _ = Describe("Driver", func() {
 		It("Should remove the ingress from the store", func() {
 			i1 := testutils.NewTestIngressV1("test-ingress", "test-namespace")
 			c := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&i1).Build()
-			err := driver.Seed(context.Background(), c)
+			err := driver.Seed(GinkgoT().Context(), c)
 			Expect(err).ToNot(HaveOccurred())
 
 			err = driver.DeleteNamedIngress(types.NamespacedName{
@@ -112,21 +111,21 @@ var _ = Describe("Driver", func() {
 		Context("When there are no ingresses in the store", func() {
 			It("Should not create anything or error", func() {
 				c := fake.NewClientBuilder().WithScheme(scheme).Build()
-				err := driver.Sync(context.Background(), c)
+				err := driver.Sync(GinkgoT().Context(), c)
 				Expect(err).ToNot(HaveOccurred())
 
 				domains := &ingressv1alpha1.DomainList{}
-				err = c.List(context.Background(), &ingressv1alpha1.DomainList{})
+				err = c.List(GinkgoT().Context(), &ingressv1alpha1.DomainList{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(domains.Items).To(HaveLen(0))
 
 				edges := &ingressv1alpha1.HTTPSEdgeList{}
-				err = c.List(context.Background(), &ingressv1alpha1.HTTPSEdgeList{})
+				err = c.List(GinkgoT().Context(), &ingressv1alpha1.HTTPSEdgeList{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(edges.Items).To(HaveLen(0))
 
 				tunnels := &ingressv1alpha1.TunnelList{}
-				err = c.List(context.Background(), &ingressv1alpha1.TunnelList{})
+				err = c.List(GinkgoT().Context(), &ingressv1alpha1.TunnelList{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(tunnels.Items).To(HaveLen(0))
 			})
@@ -154,14 +153,14 @@ var _ = Describe("Driver", func() {
 					err := driver.store.Update(obj)
 					Expect(err).ToNot(HaveOccurred())
 				}
-				err := driver.Seed(context.Background(), c)
+				err := driver.Seed(GinkgoT().Context(), c)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = driver.Sync(context.Background(), c)
+				err = driver.Sync(GinkgoT().Context(), c)
 				Expect(err).ToNot(HaveOccurred())
 
 				foundDomain := &ingressv1alpha1.Domain{}
-				err = c.Get(context.Background(), types.NamespacedName{
+				err = c.Get(GinkgoT().Context(), types.NamespacedName{
 					Namespace: "test-namespace",
 					Name:      "example-com",
 				}, foundDomain)
@@ -169,7 +168,7 @@ var _ = Describe("Driver", func() {
 				Expect(foundDomain.Spec.Domain).To(Equal(i1.Spec.Rules[0].Host))
 
 				foundEdges := &ingressv1alpha1.HTTPSEdgeList{}
-				err = c.List(context.Background(), foundEdges)
+				err = c.List(GinkgoT().Context(), foundEdges)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(foundEdges.Items)).To(Equal(1))
 				foundEdge := foundEdges.Items[0]
@@ -180,7 +179,7 @@ var _ = Describe("Driver", func() {
 				Expect(foundEdge.Labels["k8s.ngrok.com/controller-name"]).To(Equal(defaultManagerName))
 
 				foundTunnels := &ingressv1alpha1.TunnelList{}
-				err = c.List(context.Background(), foundTunnels)
+				err = c.List(GinkgoT().Context(), foundTunnels)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(foundTunnels.Items)).To(Equal(1))
 				foundTunnel := foundTunnels.Items[0]
@@ -283,12 +282,12 @@ var _ = Describe("Driver", func() {
 				}
 
 				// Seed & Sync
-				Expect(driver.Seed(context.Background(), c)).To(BeNil())
-				Expect(driver.Sync(context.Background(), c)).To(BeNil())
+				Expect(driver.Seed(GinkgoT().Context(), c)).To(BeNil())
+				Expect(driver.Sync(GinkgoT().Context(), c)).To(BeNil())
 
 				// Find the tunnels in this namespace
 				foundTunnels = &ingressv1alpha1.TunnelList{}
-				err := c.List(context.Background(), foundTunnels, client.InNamespace(namespace))
+				err := c.List(GinkgoT().Context(), foundTunnels, client.InNamespace(namespace))
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -468,20 +467,20 @@ var _ = Describe("Driver", func() {
 				}
 
 				// Seed & Sync
-				Expect(driver.Seed(context.Background(), c)).To(Succeed())
-				Expect(driver.Sync(context.Background(), c)).To(Succeed())
+				Expect(driver.Seed(GinkgoT().Context(), c)).To(Succeed())
+				Expect(driver.Sync(GinkgoT().Context(), c)).To(Succeed())
 
 				// Find the HTTPSEdges in this namespace
 				foundHTTPEdges = &ingressv1alpha1.HTTPSEdgeList{}
-				Expect(c.List(context.Background(), foundHTTPEdges, client.InNamespace(namespace))).To(Succeed())
+				Expect(c.List(GinkgoT().Context(), foundHTTPEdges, client.InNamespace(namespace))).To(Succeed())
 
 				// Find the AgentEndpoints in this namespace
 				foundAgentEndpoints = &ngrokv1alpha1.AgentEndpointList{}
-				Expect(c.List(context.Background(), foundAgentEndpoints, client.InNamespace(namespace))).To(Succeed())
+				Expect(c.List(GinkgoT().Context(), foundAgentEndpoints, client.InNamespace(namespace))).To(Succeed())
 
 				// Find the CloudEndpoints in this namespace
 				foundCloudEndpoints = &ngrokv1alpha1.CloudEndpointList{}
-				Expect(c.List(context.Background(), foundCloudEndpoints, client.InNamespace(namespace))).To(Succeed())
+				Expect(c.List(GinkgoT().Context(), foundCloudEndpoints, client.InNamespace(namespace))).To(Succeed())
 			})
 
 			When("The the ingress is using the edges mapping strategy", func() {
@@ -995,7 +994,7 @@ var _ = Describe("Driver", func() {
 
 			driver.syncDone()
 
-			err := secondWait(context.Background())
+			err := secondWait(GinkgoT().Context())
 			Expect(err).To(Equal(errSyncDone))
 		})
 
@@ -1011,12 +1010,12 @@ var _ = Describe("Driver", func() {
 			Expect(thirdProceed).To(BeFalse())
 			Expect(thirdWait).To(Not(BeNil()))
 
-			secondErr := secondWait(context.Background())
+			secondErr := secondWait(GinkgoT().Context())
 			Expect(secondErr).To(BeNil())
 
 			driver.syncDone()
 
-			err := thirdWait(context.Background())
+			err := thirdWait(GinkgoT().Context())
 			Expect(err).To(Equal(errSyncDone))
 		})
 
@@ -1032,12 +1031,12 @@ var _ = Describe("Driver", func() {
 			Expect(thirdProceed).To(BeFalse())
 			Expect(thirdWait).To(Not(BeNil()))
 
-			thirdErr := thirdWait(context.Background())
+			thirdErr := thirdWait(GinkgoT().Context())
 			Expect(thirdErr).To(BeNil())
 
 			driver.syncDone()
 
-			err := secondWait(context.Background())
+			err := secondWait(GinkgoT().Context())
 			Expect(err).To(Equal(errSyncDone))
 		})
 	})
@@ -1154,7 +1153,7 @@ var _ = Describe("Driver", func() {
 
 			obs := []runtime.Object{&ic1, &i1, &i2}
 			c := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(obs...).Build()
-			Expect(driver.Seed(context.Background(), c)).To(BeNil())
+			Expect(driver.Seed(GinkgoT().Context(), c)).To(BeNil())
 
 			domainSet := driver.calculateDomainSet()
 			Expect(domainSet.edgeIngressDomains).To(HaveLen(4))

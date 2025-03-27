@@ -1,7 +1,6 @@
 package managerdriver
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -514,7 +513,7 @@ func TestTranslate(t *testing.T) {
 			inputObjects := loadTranslatorInputObjs(t, tc)
 			client := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(inputObjects...).Build()
 
-			require.NoError(t, driver.Seed(context.Background(), client))
+			require.NoError(t, driver.Seed(t.Context(), client))
 			translator := NewTranslator(
 				driver.log,
 				driver.store,
@@ -611,7 +610,7 @@ func TestTranslate(t *testing.T) {
 			inputObjects := loadTranslatorInputObjs(t, tc)
 			client := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(inputObjects...).Build()
 
-			require.NoError(t, driver.Seed(context.Background(), client))
+			require.NoError(t, driver.Seed(t.Context(), client))
 			translator := NewTranslator(
 				driver.log,
 				driver.store,
