@@ -64,7 +64,8 @@ type CloudEndpointReconciler struct {
 	Recorder       record.EventRecorder
 	NgrokClientset ngrokapi.Clientset
 
-	domainService services.DomainService
+	domainService  services.DomainService
+	tcpAddrService services.TCPAddrService
 }
 
 // Define a custom error types to catch and handle requeuing logic for
@@ -80,6 +81,7 @@ func (r *CloudEndpointReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	r.domainService = services.NewDefaultDomainService(r.Client)
+	r.tcpAddrService = services.NewDefaultTCPAddrService(r.NgrokClientset.TCPAddresses())
 
 	r.controller = &controller.BaseController[*ngrokv1alpha1.CloudEndpoint]{
 		Kube:     r.Client,
@@ -147,8 +149,13 @@ func (r *CloudEndpointReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 // Create will make sure a domain is created before creating the Cloud Endpoint
 // It also looks up the Traffic Policy and creates the Cloud Endpoint using this Traffic Policy JSON
 func (r *CloudEndpointReconciler) create(ctx context.Context, clep *ngrokv1alpha1.CloudEndpoint) error {
+	// Also expands the URL to assign an address if it is ambiguous
 	if err := r.ensureDomainOrAddrExists(ctx, clep); err != nil {
 		return err
+	}
+
+	if clep.Status.URL == "" {
+		return fmt.Errorf("expected the computed URL to be set in the status, but it was empty")
 	}
 
 	policy, err := r.getTrafficPolicy(ctx, clep)
@@ -158,7 +165,7 @@ func (r *CloudEndpointReconciler) create(ctx context.Context, clep *ngrokv1alpha
 
 	createParams := &ngrok.EndpointCreate{
 		Type:           "cloud",
-		URL:            clep.Spec.URL,
+		URL:            clep.Status.URL, // Use the computed URL here in case the spec has a shorthand, like `tcp://`
 		Description:    &clep.Spec.Description,
 		Metadata:       &clep.Spec.Metadata,
 		TrafficPolicy:  policy,
@@ -177,8 +184,13 @@ func (r *CloudEndpointReconciler) create(ctx context.Context, clep *ngrokv1alpha
 // Update is called when we have a status ID and want to update the resource in the ngrok API
 // If it fails to find the resource by ID, create a new one instead
 func (r *CloudEndpointReconciler) update(ctx context.Context, clep *ngrokv1alpha1.CloudEndpoint) error {
+	// Also expands the URL to assign an address if it is ambiguous
 	if err := r.ensureDomainOrAddrExists(ctx, clep); err != nil {
 		return err
+	}
+
+	if clep.Status.URL == "" {
+		return fmt.Errorf("expected the computed URL to be set in the status, but it was empty")
 	}
 
 	policy, err := r.getTrafficPolicy(ctx, clep)
@@ -188,7 +200,7 @@ func (r *CloudEndpointReconciler) update(ctx context.Context, clep *ngrokv1alpha
 
 	updateParams := &ngrok.EndpointUpdate{
 		ID:             clep.Status.ID,
-		Url:            &clep.Spec.URL,
+		Url:            &clep.Status.URL, // Use the computed URL here in case the spec has a shorthand, like `tcp://`
 		Description:    &clep.Spec.Description,
 		Metadata:       &clep.Spec.Metadata,
 		TrafficPolicy:  &policy,
@@ -307,6 +319,25 @@ func (r *CloudEndpointReconciler) findTrafficPolicyByName(ctx context.Context, t
 
 // ensureDomainExists checks if the Domain CRD exists, and if not, creates it.
 func (r *CloudEndpointReconciler) ensureDomainOrAddrExists(ctx context.Context, clep *ngrokv1alpha1.CloudEndpoint) error {
+	// Handle special cases first
+	// If the URL is an unspecified TCP address, reserve a new one
+	if clep.Spec.URL == "tcp://" {
+		// We already have a reseved address, so we will just use that
+		if clep.Status.URL != "" {
+			return nil
+		}
+
+		// Reserve a TCP Address for the CloudEndpoint and update the CloudEndpoint's Status URL
+		addr, err := r.tcpAddrService.FindOrReserveAddr(ctx, clep)
+		if err != nil {
+			r.Recorder.Event(clep, v1.EventTypeWarning, "FailedToReserveTCPAddr", fmt.Sprintf("Unable to reserve TCP Address: %s", err))
+			return err
+		}
+
+		clep.Status.URL = fmt.Sprintf("tcp://%s", addr.Addr)
+		return r.Client.Status().Update(ctx, clep)
+	}
+
 	parsedURL, err := tunneldriver.ParseAndSanitizeEndpointURL(clep.Spec.URL, true)
 	if err != nil {
 		r.Recorder.Event(clep, v1.EventTypeWarning, "InvalidURL", fmt.Sprintf("Failed to parse URL: %s", clep.Spec.URL))
@@ -326,6 +357,7 @@ func (r *CloudEndpointReconciler) ensureDomainOrAddrExists(ctx context.Context, 
 		return fmt.Errorf("unsupported scheme: %s", parsedURL.Scheme)
 	}
 
+	clep.Status.URL = parsedURL.String()
 	if domain == nil {
 		clep.Status.Domain = nil
 	} else {

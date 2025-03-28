@@ -135,6 +135,9 @@ spec:
               id:
                 description: ID is the unique identifier for this endpoint
                 type: string
+              url:
+                description: URL is the computed URL for this endpoint
+                type: string
             type: object
         type: object
     served: true

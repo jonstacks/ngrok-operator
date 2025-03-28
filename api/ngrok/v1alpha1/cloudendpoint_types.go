@@ -88,6 +88,9 @@ type CloudEndpointStatus struct {
 	// ID is the unique identifier for this endpoint
 	ID string `json:"id,omitempty"`
 
+	// URL is the computed URL for this endpoint
+	URL string `json:"url,omitempty"`
+
 	// Domain is the DomainStatus object associated with this endpoint.
 	// For internal endpoints, this will be nil.
 	Domain *ingressv1alpha1.DomainStatus `json:"domain,omitempty"`
