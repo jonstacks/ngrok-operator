@@ -372,6 +372,11 @@ func (r *AgentEndpointReconciler) ensureDomainExists(ctx context.Context, aep *n
 		return fmt.Errorf("failed to parse URL %q from AgentEndpoint \"%s.%s\"", aep.Spec.URL, aep.Name, aep.Namespace)
 	}
 
+	// Ngrok TCP URLs do not have to be reserved
+	if parsedURL.Scheme == "tcp" && strings.HasSuffix(parsedURL.Hostname(), "tcp.ngrok.io") {
+		return nil
+	}
+
 	// TODO: generate a domain for blank strings
 	domain := parsedURL.Hostname()
 	hyphenatedDomain := ingressv1alpha1.HyphenatedDomainNameFromURL(domain)
