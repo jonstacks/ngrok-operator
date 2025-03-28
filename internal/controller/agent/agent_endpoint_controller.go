@@ -386,12 +386,12 @@ func (r *AgentEndpointReconciler) ensureDomainOrAddrExists(ctx context.Context, 
 		if domain == nil {
 			return nil
 		}
+		log.V(1).Info("Domain reserved", "domain.name", domain.Name, "domain.status.id", domain.Status.ID)
 	case "tcp": // The URL should already be set to the reserved address, continue on
 	default:
 		r.Recorder.Event(aep, v1.EventTypeWarning, "UnsupportedScheme", fmt.Sprintf("Unsupported scheme: '%s'", parsedURL.Scheme))
 		return fmt.Errorf("unsupported scheme: %s", parsedURL.Scheme)
 	}
 
-	log.V(1).Info("Domain reserved", "domain.name", domain.Name, "domain.status.id", domain.Status.ID)
 	return nil
 }
