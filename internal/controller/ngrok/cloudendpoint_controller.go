@@ -352,6 +352,7 @@ func (r *CloudEndpointReconciler) ensureDomainOrAddrExists(ctx context.Context, 
 		if err != nil {
 			return err
 		}
+	case "tcp": // The URL should already be set to the reserved address, continue on
 	default:
 		r.Recorder.Event(clep, v1.EventTypeWarning, "UnsupportedScheme", fmt.Sprintf("Unsupported scheme: '%s'", parsedURL.Scheme))
 		return fmt.Errorf("unsupported scheme: %s", parsedURL.Scheme)

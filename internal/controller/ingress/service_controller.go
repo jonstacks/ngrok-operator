@@ -501,11 +501,19 @@ func (r *ServiceReconciler) buildEndpoints(ctx context.Context, svc *corev1.Serv
 	// For the verbose strategy, make a CloudEndpoint that routes to an AgentEndpoint
 	case ir.IRMappingStrategy_EndpointsVerbose:
 		internalURL := fmt.Sprintf("tcp://%s.%s.%s.internal:%d", svc.UID, svc.Name, svc.Namespace, port)
+
+		// Adding a new rule to the traffic polilcy to forward to the internal endpoint
+		// means we need to re-marshal the policy to JSON
 		tp.AddRuleOnTCPConnect(trafficpolicy.Rule{
 			Actions: []trafficpolicy.Action{
 				trafficpolicy.NewForwardInternalAction(internalURL),
 			},
 		})
+
+		rawPolicy, err = json.Marshal(tp)
+		if err != nil {
+			return objects, err
+		}
 
 		cloudEndpoint := &ngrokv1alpha1.CloudEndpoint{
 			ObjectMeta: metav1.ObjectMeta{
