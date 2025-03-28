@@ -29,13 +29,13 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	ingressv1alpha1 "github.com/ngrok/ngrok-operator/api/ingress/v1alpha1"
 	ngrokv1alpha1 "github.com/ngrok/ngrok-operator/api/ngrok/v1alpha1"
 	"github.com/ngrok/ngrok-operator/internal/controller"
+	"github.com/ngrok/ngrok-operator/internal/services"
 	"github.com/ngrok/ngrok-operator/pkg/tunneldriver"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -53,7 +53,6 @@ const (
 )
 
 var (
-	ErrDomainCreating             = errors.New("domain is being created, requeue after delay")
 	ErrInvalidTrafficPolicyConfig = errors.New("invalid TrafficPolicy configuration: both targetRef and inline are set")
 )
 
@@ -68,10 +67,11 @@ var (
 type AgentEndpointReconciler struct {
 	client.Client
 
-	Log          logr.Logger
-	Scheme       *runtime.Scheme
-	Recorder     record.EventRecorder
-	TunnelDriver *tunneldriver.TunnelDriver
+	Log           logr.Logger
+	Scheme        *runtime.Scheme
+	Recorder      record.EventRecorder
+	TunnelDriver  *tunneldriver.TunnelDriver
+	domainService services.DomainService
 
 	controller *controller.BaseController[*ngrokv1alpha1.AgentEndpoint]
 }
@@ -84,6 +84,8 @@ func (r *AgentEndpointReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return fmt.Errorf("TunnelDriver is nil")
 	}
 
+	r.domainService = services.NewDefaultDomainService(r.Client)
+
 	r.controller = &controller.BaseController[*ngrokv1alpha1.AgentEndpoint]{
 		Kube:     r.Client,
 		Log:      r.Log,
@@ -92,7 +94,7 @@ func (r *AgentEndpointReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Delete:   r.delete,
 		StatusID: r.statusID,
 		ErrResult: func(op controller.BaseControllerOp, cr *ngrokv1alpha1.AgentEndpoint, err error) (ctrl.Result, error) {
-			if errors.Is(err, ErrDomainCreating) {
+			if errors.Is(err, services.ErrDomainCreating) {
 				return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 			}
 			if errors.Is(err, ErrInvalidTrafficPolicyConfig) {
@@ -178,23 +180,22 @@ func (r *AgentEndpointReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return r.controller.Reconcile(ctx, req, new(ngrokv1alpha1.AgentEndpoint))
 }
 
-func (r *AgentEndpointReconciler) update(ctx context.Context, endpoint *ngrokv1alpha1.AgentEndpoint) error {
-	err := r.ensureDomainExists(ctx, endpoint)
+func (r *AgentEndpointReconciler) update(ctx context.Context, aep *ngrokv1alpha1.AgentEndpoint) error {
+	if err := r.ensureDomainOrAddrExists(ctx, aep); err != nil {
+		return err
+	}
+
+	trafficPolicy, err := r.getTrafficPolicy(ctx, aep)
+	if err != nil {
+		return err
+	}
+	clientCerts, err := r.getClientCerts(ctx, aep)
 	if err != nil {
 		return err
 	}
 
-	trafficPolicy, err := r.getTrafficPolicy(ctx, endpoint)
-	if err != nil {
-		return err
-	}
-	clientCerts, err := r.getClientCerts(ctx, endpoint)
-	if err != nil {
-		return err
-	}
-
-	tunnelName := r.statusID(endpoint)
-	return r.TunnelDriver.CreateAgentEndpoint(ctx, tunnelName, endpoint.Spec, trafficPolicy, clientCerts)
+	tunnelName := r.statusID(aep)
+	return r.TunnelDriver.CreateAgentEndpoint(ctx, tunnelName, aep.Spec, trafficPolicy, clientCerts)
 }
 
 func (r *AgentEndpointReconciler) delete(ctx context.Context, endpoint *ngrokv1alpha1.AgentEndpoint) error {
@@ -365,56 +366,31 @@ func (r *AgentEndpointReconciler) findTrafficPolicyByName(ctx context.Context, t
 }
 
 // ensureDomainExists checks if the Domain CRD exists, and if not, creates it.
-func (r *AgentEndpointReconciler) ensureDomainExists(ctx context.Context, aep *ngrokv1alpha1.AgentEndpoint) error {
+func (r *AgentEndpointReconciler) ensureDomainOrAddrExists(ctx context.Context, aep *ngrokv1alpha1.AgentEndpoint) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	parsedURL, err := tunneldriver.ParseAndSanitizeEndpointURL(aep.Spec.URL, true)
 	if err != nil {
 		r.Recorder.Event(aep, v1.EventTypeWarning, "InvalidURL", fmt.Sprintf("Failed to parse URL: %s", aep.Spec.URL))
-		return fmt.Errorf("failed to parse URL %q from AgentEndpoint \"%s.%s\"", aep.Spec.URL, aep.Name, aep.Namespace)
+		return fmt.Errorf("failed to parse URL %q from CloudEndpoint \"%s.%s\"", aep.Spec.URL, aep.Name, aep.Namespace)
 	}
 
-	// TODO: generate a domain for blank strings
-	domain := parsedURL.Hostname()
-	hyphenatedDomain := ingressv1alpha1.HyphenatedDomainNameFromURL(domain)
-	if strings.HasSuffix(domain, ".internal") {
-		// Skip creating the Domain CRD for reserved TLDs
-		return nil
-	}
+	var domain *ingressv1alpha1.Domain
 
-	log := ctrl.LoggerFrom(ctx).WithValues("domain", domain)
-
-	// Check if the Domain CRD already exists
-	domainObj := &ingressv1alpha1.Domain{}
-
-	err = r.Get(ctx, client.ObjectKey{Name: hyphenatedDomain, Namespace: aep.Namespace}, domainObj)
-	if err == nil {
-		// Domain already exists
-		if domainObj.Status.ID == "" {
-			// Domain is not ready yet
-			return ErrDomainCreating
+	switch parsedURL.Scheme {
+	case "tls", "http", "https":
+		domain, err = r.domainService.FindOrReserveDomain(ctx, aep, parsedURL.Hostname())
+		if err != nil {
+			return err
 		}
-		return nil
-	}
-	if client.IgnoreNotFound(err) != nil {
-		// Some other error occurred
-		log.Error(err, "failed to check Domain CRD existence")
-		return err
-	}
-
-	// Create the Domain CRD since it doesn't exist
-	newDomain := &ingressv1alpha1.Domain{
-		ObjectMeta: ctrl.ObjectMeta{
-			Name:      hyphenatedDomain,
-			Namespace: aep.Namespace,
-		},
-		Spec: ingressv1alpha1.DomainSpec{
-			Domain: domain,
-		},
-	}
-	if err := r.Create(ctx, newDomain); err != nil {
-		r.Recorder.Event(aep, v1.EventTypeWarning, "DomainCreationFailed", fmt.Sprintf("Failed to create Domain CRD %s", hyphenatedDomain))
-		return err
+		if domain == nil {
+			return nil
+		}
+	default:
+		r.Recorder.Event(aep, v1.EventTypeWarning, "UnsupportedScheme", fmt.Sprintf("Unsupported scheme: '%s'", parsedURL.Scheme))
+		return fmt.Errorf("unsupported scheme: %s", parsedURL.Scheme)
 	}
 
-	r.Recorder.Event(aep, v1.EventTypeNormal, "DomainCreated", fmt.Sprintf("Domain CRD %s created successfully", hyphenatedDomain))
-	return ErrDomainCreating
+	log.V(1).Info("Domain reserved", "domain.name", domain.Name, "domain.status.id", domain.Status.ID)
+	return nil
 }
