@@ -410,12 +410,13 @@ func trafficPolicyFromModSetAnnotation(log logr.Logger, store store.Storer, obj 
 
 	// We always get back a moduleset from the above function, check if it is empty or not
 	if ingressModuleSet.IsEmpty() {
-		if useEndpoints {
-			log.Error(fmt.Errorf("ngrok moduleset supplied to %s with annotation to use endpoints instead of edges", obj.GetObjectKind().GroupVersionKind().Kind), "ngrok moduleset are not supported on endpoints. prefer using a traffic policy directly. any fields other than supplying a traffic policy using the module set will be ignored",
-				"ingress", fmt.Sprintf("%s.%s", obj.GetName(), obj.GetNamespace()),
-			)
-		}
 		return nil, nil, nil
+	}
+
+	if useEndpoints {
+		log.Error(fmt.Errorf("ngrok moduleset supplied to %s with annotation to use endpoints instead of edges", obj.GetObjectKind().GroupVersionKind().Kind), "ngrok moduleset are not supported on endpoints. prefer using a traffic policy directly. any fields other than supplying a traffic policy using the module set will be ignored",
+			"ingress", fmt.Sprintf("%s.%s", obj.GetName(), obj.GetNamespace()),
+		)
 	}
 
 	if ingressModuleSet.Modules.Policy == nil {
