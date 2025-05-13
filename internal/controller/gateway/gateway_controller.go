@@ -28,6 +28,7 @@ import (
 	"context"
 
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -73,10 +74,8 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	gw := new(gatewayv1.Gateway)
 	err := r.Client.Get(ctx, req.NamespacedName, gw)
-	switch {
-	case err == nil:
-		// all good, continue
-	case client.IgnoreNotFound(err) == nil:
+
+	if apierrors.IsNotFound(err) {
 		if err := r.Driver.DeleteNamedGateway(req.NamespacedName); err != nil {
 			log.Error(err, "Failed to delete gateway from store")
 			return ctrl.Result{}, err
@@ -89,8 +88,24 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		return ctrl.Result{}, nil
-	default:
+	}
+
+	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	// If the gateway is being deleted, remove the finalizer, delete it from the store and
+	// return early.
+	if controller.IsDelete(gw) {
+		log.Info("Deleting gateway from store")
+		if controller.HasFinalizer(gw) {
+			if err := controller.RemoveAndSyncFinalizer(ctx, r.Client, gw); err != nil {
+				log.Error(err, "Failed to remove finalizer")
+				return ctrl.Result{}, err
+			}
+		}
+
+		return ctrl.Result{}, r.Driver.DeleteGateway(gw)
 	}
 
 	log.V(1).Info("verifying gatewayclass")
@@ -105,25 +120,10 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	if controller.IsUpsert(gw) {
-		// The object is not being deleted, so register and sync finalizer
-		if err := controller.RegisterAndSyncFinalizer(ctx, r.Client, gw); err != nil {
-			log.Error(err, "Failed to register finalizer")
-			return ctrl.Result{}, err
-		}
-	} else {
-		log.Info("Deleting gateway from store")
-		if controller.HasFinalizer(gw) {
-			if err := controller.RemoveAndSyncFinalizer(ctx, r.Client, gw); err != nil {
-				log.Error(err, "Failed to remove finalizer")
-				return ctrl.Result{}, err
-			}
-		}
-
-		// Remove it from the store
-		if err := r.Driver.DeleteGateway(gw); err != nil {
-			return ctrl.Result{}, err
-		}
+	// The object is not being deleted and we should handle it, so register and sync finalizer
+	if err := controller.RegisterAndSyncFinalizer(ctx, r.Client, gw); err != nil {
+		log.Error(err, "Failed to register finalizer")
+		return ctrl.Result{}, err
 	}
 
 	// Accept the Gateway

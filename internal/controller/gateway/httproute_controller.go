@@ -29,7 +29,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-logr/logr"
+	ingressv1alpha1 "github.com/ngrok/ngrok-operator/api/ingress/v1alpha1"
+	"github.com/ngrok/ngrok-operator/internal/controller"
+	"github.com/ngrok/ngrok-operator/pkg/managerdriver"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,13 +42,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
-
-	"github.com/go-logr/logr"
-	ingressv1alpha1 "github.com/ngrok/ngrok-operator/api/ingress/v1alpha1"
-	"github.com/ngrok/ngrok-operator/internal/controller"
-	"github.com/ngrok/ngrok-operator/pkg/managerdriver"
 )
 
 // HTTPRouteReconciler reconciles a HTTPRoute object
@@ -66,10 +68,8 @@ func (r *HTTPRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	httproute := new(gatewayv1.HTTPRoute)
 	err := r.Client.Get(ctx, req.NamespacedName, httproute)
-	switch {
-	case err == nil:
-		// all good, continue
-	case client.IgnoreNotFound(err) == nil:
+
+	if apierrors.IsNotFound(err) {
 		if err := r.Driver.DeleteNamedHTTPRoute(req.NamespacedName); err != nil {
 			log.Error(err, "Failed to delete httproute from store")
 			return ctrl.Result{}, err
@@ -82,17 +82,13 @@ func (r *HTTPRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 
 		return ctrl.Result{}, nil
-	default:
+	}
+
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if controller.IsUpsert(httproute) {
-		// The object is not being deleted, so register and sync finalizer
-		if err := controller.RegisterAndSyncFinalizer(ctx, r.Client, httproute); err != nil {
-			log.Error(err, "Failed to register finalizer")
-			return ctrl.Result{}, err
-		}
-	} else {
+	if controller.IsDelete(httproute) {
 		log.Info("Deleting httproute from store")
 		if controller.HasFinalizer(httproute) {
 			if err := controller.RemoveAndSyncFinalizer(ctx, r.Client, httproute); err != nil {
@@ -102,9 +98,13 @@ func (r *HTTPRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 
 		// Remove it from the store
-		if err := r.Driver.DeleteHTTPRoute(httproute); err != nil {
-			return ctrl.Result{}, err
-		}
+		return ctrl.Result{}, r.Driver.DeleteHTTPRoute(httproute)
+	}
+
+	// The object is not being deleted, so register and sync finalizer
+	if err := controller.RegisterAndSyncFinalizer(ctx, r.Client, httproute); err != nil {
+		log.Error(err, "Failed to register finalizer")
+		return ctrl.Result{}, err
 	}
 
 	// Validate the HTTPRoute before updating the store
@@ -138,7 +138,17 @@ func (r *HTTPRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// &ingressv1alpha1.NgrokModuleSet{},
 	}
 
-	builder := ctrl.NewControllerManagedBy(mgr).For(&gatewayv1.HTTPRoute{})
+	builder := ctrl.NewControllerManagedBy(mgr).
+		For(
+			&gatewayv1.HTTPRoute{},
+			builder.WithPredicates(
+				predicate.Or(
+					predicate.AnnotationChangedPredicate{},
+					predicate.GenerationChangedPredicate{},
+				),
+			),
+		)
+
 	for _, obj := range storedResources {
 		builder = builder.Watches(
 			obj,

@@ -106,9 +106,11 @@ var _ = Describe("HTTPRoute controller", Ordered, func() {
 			})
 
 			When("the gateway does not exist", func() {
-				It("Should not accept the HTTPRoute", func(ctx SpecContext) {
+				BeforeEach(func(ctx SpecContext) {
 					Expect(k8sClient.Delete(ctx, gw)).To(Succeed())
+				})
 
+				It("Should not accept the HTTPRoute", func(ctx SpecContext) {
 					Eventually(func(g Gomega) {
 						obj := &gatewayv1.HTTPRoute{}
 						g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(route), obj)).To(Succeed())
@@ -123,7 +125,7 @@ var _ = Describe("HTTPRoute controller", Ordered, func() {
 						g.Expect(cond).ToNot(BeNil())
 						g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
 						g.Expect(cond.Reason).To(Equal(string(gatewayv1.RouteReasonNoMatchingParent)))
-					}, timeout, interval).Should(Succeed())
+					}, 30*time.Second, interval).Should(Succeed())
 				})
 			})
 		})
