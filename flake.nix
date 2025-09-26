@@ -15,12 +15,13 @@
           gotools
           go-tools
           golangci-lint
+          jq
+          kind
           kubernetes-helm
           kubebuilder
-          jq
-          yq
           kyverno-chainsaw
           tilt
+          yq
         ];
         CGO_ENABLED = "0";
       };

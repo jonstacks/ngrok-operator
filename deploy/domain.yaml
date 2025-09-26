@@ -1,0 +1,9 @@
+kind: Domain
+apiVersion: ingress.k8s.ngrok.com/v1alpha1
+metadata:
+  name: example-domain
+spec:
+  description: A test domain
+  domain: stacks-test-domain-32.ngrok.io
+  reclaimPolicy: Retain
+
