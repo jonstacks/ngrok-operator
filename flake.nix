@@ -20,6 +20,7 @@
           jq
           yq
           kyverno-chainsaw
+          tilt
         ];
         CGO_ENABLED = "0";
       };
