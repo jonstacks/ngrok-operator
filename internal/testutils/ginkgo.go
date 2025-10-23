@@ -136,6 +136,19 @@ func (k *KGinkgo) EventuallyWithCloudEndpoints(ctx context.Context, namespace st
 	}).WithTimeout(eo.timeout).WithPolling(eo.interval).Should(Succeed())
 }
 
+func (k *KGinkgo) ConsistentlyWithCloudEndpoints(ctx context.Context, namespace string, inner func(g Gomega, cleps []ngrokv1alpha1.CloudEndpoint), opts ...KGinkgoOpt) {
+	GinkgoHelper()
+	eo := makeKGinkgoOptions(opts...)
+
+	Consistently(func(g Gomega) {
+		// List CloudEndpoints in the namespace
+		cleps, err := k.getCloudEndpoints(ctx, namespace)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		inner(g, cleps)
+	}).WithTimeout(eo.timeout).WithPolling(eo.interval).Should(Succeed())
+}
+
 func (k *KGinkgo) EventuallyWithAgentEndpoints(ctx context.Context, namespace string, inner func(g Gomega, aeps []ngrokv1alpha1.AgentEndpoint), opts ...KGinkgoOpt) {
 	GinkgoHelper()
 	eo := makeKGinkgoOptions(opts...)
@@ -176,7 +189,7 @@ func (k *KGinkgo) EventuallyExpectNoEndpoints(ctx context.Context, namespace str
 
 		By("verifying no agent endpoints remain")
 		g.Expect(aeps).To(BeEmpty())
-	})
+	}, opts...)
 }
 
 func (k *KGinkgo) getCloudEndpoints(ctx context.Context, namespace string) ([]ngrokv1alpha1.CloudEndpoint, error) {

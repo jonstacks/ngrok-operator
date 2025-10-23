@@ -49,11 +49,6 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-const (
-	timeout  = testutils.DefaultTimeout
-	interval = testutils.DefaultInterval
-)
-
 var (
 	cfg            *rest.Config
 	k8sClient      client.Client

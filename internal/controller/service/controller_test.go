@@ -300,6 +300,34 @@ var _ = Describe("ServiceController", func() {
 				})
 			})
 
+			When("endpoints default (no annotation)", func() {
+				It("Should not create a cloud endpoint", func() {
+					kginkgo.ConsistentlyWithCloudEndpoints(ctx, namespace, func(g Gomega, cleps []ngrokv1alpha1.CloudEndpoint) {
+						By("checking no cloud endpoints exist")
+						g.Expect(cleps).To(BeEmpty())
+					})
+				})
+
+				It("Should create an agent endpoint", func() {
+					kginkgo.EventuallyWithAgentEndpoints(ctx, namespace, func(g Gomega, aeps []ngrokv1alpha1.AgentEndpoint) {
+						By("checking an agent endpoint exists")
+						g.Expect(aeps).To(HaveLen(1))
+					})
+				})
+
+				It("Should update service status with hostname and port", func() {
+					Eventually(func(g Gomega) {
+						fetched := &corev1.Service{}
+						err := k8sClient.Get(ctx, client.ObjectKeyFromObject(svc), fetched)
+						g.Expect(err).NotTo(HaveOccurred())
+
+						By("By checking the service status is updated")
+						g.Expect(fetched.Status.LoadBalancer.Ingress).NotTo(BeEmpty())
+						g.Expect(fetched.Status.LoadBalancer.Ingress[0].Hostname).NotTo(BeEmpty())
+					}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+				})
+			})
+
 			When("service type changes from LoadBalancer to ClusterIP", func() {
 				BeforeEach(func() {
 					modifiers.Add(SetMappingStrategy(annotations.MappingStrategy_EndpointsVerbose))
