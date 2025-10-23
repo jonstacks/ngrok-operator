@@ -29,6 +29,7 @@ import (
 	"testing"
 
 	"github.com/ngrok/ngrok-operator/internal/mocks/nmockapi"
+	"github.com/ngrok/ngrok-operator/internal/testutils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap/zapcore"
@@ -48,6 +49,11 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
+const (
+	timeout  = testutils.DefaultTimeout
+	interval = testutils.DefaultInterval
+)
+
 var (
 	cfg            *rest.Config
 	k8sClient      client.Client
@@ -56,6 +62,8 @@ var (
 
 	ctx    context.Context
 	cancel context.CancelFunc
+
+	kginkgo *testutils.KGinkgo
 )
 
 func TestControllers(t *testing.T) {
@@ -99,6 +107,9 @@ var _ = BeforeSuite(func() {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
+
+	// Initialize Expect helpers
+	kginkgo = testutils.NewKGinkgo(k8sClient)
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,

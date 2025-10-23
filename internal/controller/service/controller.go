@@ -55,6 +55,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -110,8 +111,7 @@ func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	controller := ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Service{}).
-		WithEventFilter(predicate.Funcs{
+		For(&corev1.Service{}, builder.WithPredicates(predicate.Funcs{
 			// Only handle services that are of type LoadBalancer and have the correct load balancer class
 			CreateFunc: func(e event.CreateEvent) bool {
 				svc, ok := e.Object.(*corev1.Service)
@@ -120,7 +120,7 @@ func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				}
 				return shouldHandleService(svc)
 			},
-		}).
+		})).
 		// Watch traffic policies for changes
 		Watches(
 			&ngrokv1alpha1.NgrokTrafficPolicy{},
@@ -649,12 +649,23 @@ type baseSubresourceReconciler[T any, PT interface {
 func (r *baseSubresourceReconciler[T, PT]) GetOwnedResources(ctx context.Context, c client.Client, svc *corev1.Service) ([]client.Object, error) {
 	opts := []client.ListOption{
 		client.InNamespace(svc.Namespace),
-		client.MatchingFields{OwnerReferencePath: string(svc.UID)},
 	}
-	owned, err := r.listOwned(ctx, c, opts...)
+	allItems, err := r.listOwned(ctx, c, opts...)
 	if err != nil {
 		return nil, err
 	}
+
+	// Filter to resources controlled by this service
+	// We avoid using MatchingFields to prevent eventual consistency issues with the field index
+	owned := make([]T, 0)
+	for _, item := range allItems {
+		var p PT = &item
+		controller := metav1.GetControllerOf(p)
+		if controller != nil && controller.UID == svc.UID {
+			owned = append(owned, item)
+		}
+	}
+
 	ptrs := make([]PT, len(owned))
 	objects := make([]client.Object, len(owned))
 
