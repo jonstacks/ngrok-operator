@@ -12,8 +12,8 @@ import (
 )
 
 // Helper function to create a test AgentEndpoint
-func createTestAgentEndpoint(name, namespace string) *ngrokv1alpha1.AgentEndpoint {
-	return &ngrokv1alpha1.AgentEndpoint{
+func createTestAgentEndpoint(name, namespace string) *AgentEndpoint {
+	return &AgentEndpoint{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       name,
 			Namespace:  namespace,
@@ -26,7 +26,7 @@ func createTestAgentEndpoint(name, namespace string) *ngrokv1alpha1.AgentEndpoin
 }
 
 // Helper function to create a test AgentEndpoint with conditions
-func createTestAgentEndpointWithConditions(name, namespace string, conditions []metav1.Condition) *ngrokv1alpha1.AgentEndpoint {
+func createTestAgentEndpointWithConditions(name, namespace string, conditions []metav1.Condition) *AgentEndpoint {
 	endpoint := createTestAgentEndpoint(name, namespace)
 	endpoint.Status.Conditions = conditions
 	return endpoint
@@ -53,45 +53,45 @@ func createNotReadyDomainResult(reason, message string) *domainpkg.DomainResult 
 func TestCalculateAgentEndpointReadyCondition_AllReady(t *testing.T) {
 	endpoint := createTestAgentEndpointWithConditions("test-endpoint", "default", []metav1.Condition{
 		{
-			Type:   string(ngrokv1alpha1.AgentEndpointConditionEndpointCreated),
+			Type:   string(ConditionEndpointCreated),
 			Status: metav1.ConditionTrue,
-			Reason: string(ngrokv1alpha1.AgentEndpointReasonEndpointCreated),
+			Reason: string(ReasonEndpointCreated),
 		},
 		{
-			Type:   string(ngrokv1alpha1.AgentEndpointConditionTrafficPolicy),
+			Type:   string(ConditionTrafficPolicy),
 			Status: metav1.ConditionTrue,
-			Reason: string(ngrokv1alpha1.AgentEndpointReasonTrafficPolicyApplied),
+			Reason: string(ReasonTrafficPolicyApplied),
 		},
 	})
 	domainResult := createReadyDomainResult()
 
 	calculateAgentEndpointReadyCondition(endpoint, domainResult)
 
-	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ngrokv1alpha1.AgentEndpointConditionReady)
+	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ConditionReady)
 	assert.NotNil(t, readyCondition)
 	assert.Equal(t, metav1.ConditionTrue, readyCondition.Status)
-	assert.Equal(t, string(ngrokv1alpha1.AgentEndpointReasonActive), readyCondition.Reason)
+	assert.Equal(t, string(ReasonActive), readyCondition.Reason)
 	assert.Equal(t, "AgentEndpoint is active and ready", readyCondition.Message)
 }
 
 func TestCalculateAgentEndpointReadyCondition_DomainNotReady(t *testing.T) {
 	endpoint := createTestAgentEndpointWithConditions("test-endpoint", "default", []metav1.Condition{
 		{
-			Type:   string(ngrokv1alpha1.AgentEndpointConditionEndpointCreated),
+			Type:   string(ConditionEndpointCreated),
 			Status: metav1.ConditionTrue,
-			Reason: string(ngrokv1alpha1.AgentEndpointReasonEndpointCreated),
+			Reason: string(ReasonEndpointCreated),
 		},
 		{
-			Type:   string(ngrokv1alpha1.AgentEndpointConditionTrafficPolicy),
+			Type:   string(ConditionTrafficPolicy),
 			Status: metav1.ConditionTrue,
-			Reason: string(ngrokv1alpha1.AgentEndpointReasonTrafficPolicyApplied),
+			Reason: string(ReasonTrafficPolicyApplied),
 		},
 	})
 	domainResult := createNotReadyDomainResult("ProvisioningError", "Certificate provisioning in progress")
 
 	calculateAgentEndpointReadyCondition(endpoint, domainResult)
 
-	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ngrokv1alpha1.AgentEndpointConditionReady)
+	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ConditionReady)
 	assert.NotNil(t, readyCondition)
 	assert.Equal(t, metav1.ConditionFalse, readyCondition.Status)
 	assert.Equal(t, "ProvisioningError", readyCondition.Reason)
@@ -101,14 +101,14 @@ func TestCalculateAgentEndpointReadyCondition_DomainNotReady(t *testing.T) {
 func TestCalculateAgentEndpointReadyCondition_DomainNotReadyNoReason(t *testing.T) {
 	endpoint := createTestAgentEndpointWithConditions("test-endpoint", "default", []metav1.Condition{
 		{
-			Type:   string(ngrokv1alpha1.AgentEndpointConditionEndpointCreated),
+			Type:   string(ConditionEndpointCreated),
 			Status: metav1.ConditionTrue,
-			Reason: string(ngrokv1alpha1.AgentEndpointReasonEndpointCreated),
+			Reason: string(ReasonEndpointCreated),
 		},
 		{
-			Type:   string(ngrokv1alpha1.AgentEndpointConditionTrafficPolicy),
+			Type:   string(ConditionTrafficPolicy),
 			Status: metav1.ConditionTrue,
-			Reason: string(ngrokv1alpha1.AgentEndpointReasonTrafficPolicyApplied),
+			Reason: string(ReasonTrafficPolicyApplied),
 		},
 	})
 	domainResult := &domainpkg.DomainResult{
@@ -118,44 +118,44 @@ func TestCalculateAgentEndpointReadyCondition_DomainNotReadyNoReason(t *testing.
 
 	calculateAgentEndpointReadyCondition(endpoint, domainResult)
 
-	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ngrokv1alpha1.AgentEndpointConditionReady)
+	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ConditionReady)
 	assert.NotNil(t, readyCondition)
 	assert.Equal(t, metav1.ConditionFalse, readyCondition.Status)
-	assert.Equal(t, string(ngrokv1alpha1.AgentEndpointReasonDomainNotReady), readyCondition.Reason)
+	assert.Equal(t, string(ReasonDomainNotReady), readyCondition.Reason)
 	assert.Equal(t, "Domain is not ready", readyCondition.Message)
 }
 
 func TestCalculateAgentEndpointReadyCondition_EndpointNotCreated(t *testing.T) {
 	endpoint := createTestAgentEndpointWithConditions("test-endpoint", "default", []metav1.Condition{
 		{
-			Type:    string(ngrokv1alpha1.AgentEndpointConditionEndpointCreated),
+			Type:    string(ConditionEndpointCreated),
 			Status:  metav1.ConditionFalse,
-			Reason:  string(ngrokv1alpha1.AgentEndpointReasonNgrokAPIError),
+			Reason:  string(ReasonNgrokAPIError),
 			Message: "Failed to create endpoint",
 		},
 		{
-			Type:   string(ngrokv1alpha1.AgentEndpointConditionTrafficPolicy),
+			Type:   string(ConditionTrafficPolicy),
 			Status: metav1.ConditionTrue,
-			Reason: string(ngrokv1alpha1.AgentEndpointReasonTrafficPolicyApplied),
+			Reason: string(ReasonTrafficPolicyApplied),
 		},
 	})
 	domainResult := createReadyDomainResult()
 
 	calculateAgentEndpointReadyCondition(endpoint, domainResult)
 
-	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ngrokv1alpha1.AgentEndpointConditionReady)
+	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ConditionReady)
 	assert.NotNil(t, readyCondition)
 	assert.Equal(t, metav1.ConditionFalse, readyCondition.Status)
-	assert.Equal(t, string(ngrokv1alpha1.AgentEndpointReasonNgrokAPIError), readyCondition.Reason)
+	assert.Equal(t, string(ReasonNgrokAPIError), readyCondition.Reason)
 	assert.Equal(t, "Failed to create endpoint", readyCondition.Message)
 }
 
 func TestCalculateAgentEndpointReadyCondition_EndpointNotCreatedNoCondition(t *testing.T) {
 	endpoint := createTestAgentEndpointWithConditions("test-endpoint", "default", []metav1.Condition{
 		{
-			Type:   string(ngrokv1alpha1.AgentEndpointConditionTrafficPolicy),
+			Type:   string(ConditionTrafficPolicy),
 			Status: metav1.ConditionTrue,
-			Reason: string(ngrokv1alpha1.AgentEndpointReasonTrafficPolicyApplied),
+			Reason: string(ReasonTrafficPolicyApplied),
 		},
 		// No EndpointCreated condition
 	})
@@ -163,24 +163,24 @@ func TestCalculateAgentEndpointReadyCondition_EndpointNotCreatedNoCondition(t *t
 
 	calculateAgentEndpointReadyCondition(endpoint, domainResult)
 
-	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ngrokv1alpha1.AgentEndpointConditionReady)
+	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ConditionReady)
 	assert.NotNil(t, readyCondition)
 	assert.Equal(t, metav1.ConditionFalse, readyCondition.Status)
-	assert.Equal(t, string(ngrokv1alpha1.AgentEndpointReasonPending), readyCondition.Reason)
+	assert.Equal(t, string(ReasonPending), readyCondition.Reason)
 	assert.Equal(t, "Waiting for endpoint creation", readyCondition.Message)
 }
 
 func TestCalculateAgentEndpointReadyCondition_TrafficPolicyNotReady(t *testing.T) {
 	endpoint := createTestAgentEndpointWithConditions("test-endpoint", "default", []metav1.Condition{
 		{
-			Type:   string(ngrokv1alpha1.AgentEndpointConditionEndpointCreated),
+			Type:   string(ConditionEndpointCreated),
 			Status: metav1.ConditionTrue,
-			Reason: string(ngrokv1alpha1.AgentEndpointReasonEndpointCreated),
+			Reason: string(ReasonEndpointCreated),
 		},
 		{
-			Type:    string(ngrokv1alpha1.AgentEndpointConditionTrafficPolicy),
+			Type:    string(ConditionTrafficPolicy),
 			Status:  metav1.ConditionFalse,
-			Reason:  string(ngrokv1alpha1.AgentEndpointReasonTrafficPolicyError),
+			Reason:  string(ReasonTrafficPolicyError),
 			Message: "Traffic policy validation failed",
 		},
 	})
@@ -188,19 +188,19 @@ func TestCalculateAgentEndpointReadyCondition_TrafficPolicyNotReady(t *testing.T
 
 	calculateAgentEndpointReadyCondition(endpoint, domainResult)
 
-	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ngrokv1alpha1.AgentEndpointConditionReady)
+	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ConditionReady)
 	assert.NotNil(t, readyCondition)
 	assert.Equal(t, metav1.ConditionFalse, readyCondition.Status)
-	assert.Equal(t, string(ngrokv1alpha1.AgentEndpointReasonTrafficPolicyError), readyCondition.Reason)
+	assert.Equal(t, string(ReasonTrafficPolicyError), readyCondition.Reason)
 	assert.Equal(t, "Traffic policy validation failed", readyCondition.Message)
 }
 
 func TestCalculateAgentEndpointReadyCondition_TrafficPolicyNotSet(t *testing.T) {
 	endpoint := createTestAgentEndpointWithConditions("test-endpoint", "default", []metav1.Condition{
 		{
-			Type:   string(ngrokv1alpha1.AgentEndpointConditionEndpointCreated),
+			Type:   string(ConditionEndpointCreated),
 			Status: metav1.ConditionTrue,
-			Reason: string(ngrokv1alpha1.AgentEndpointReasonEndpointCreated),
+			Reason: string(ReasonEndpointCreated),
 		},
 		// No TrafficPolicy condition - should be considered ready
 	})
@@ -208,10 +208,10 @@ func TestCalculateAgentEndpointReadyCondition_TrafficPolicyNotSet(t *testing.T) 
 
 	calculateAgentEndpointReadyCondition(endpoint, domainResult)
 
-	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ngrokv1alpha1.AgentEndpointConditionReady)
+	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ConditionReady)
 	assert.NotNil(t, readyCondition)
 	assert.Equal(t, metav1.ConditionTrue, readyCondition.Status)
-	assert.Equal(t, string(ngrokv1alpha1.AgentEndpointReasonActive), readyCondition.Reason)
+	assert.Equal(t, string(ReasonActive), readyCondition.Reason)
 	assert.Equal(t, "AgentEndpoint is active and ready", readyCondition.Message)
 }
 
@@ -219,15 +219,15 @@ func TestCalculateAgentEndpointReadyCondition_MultipleIssues(t *testing.T) {
 	// Domain not ready should take precedence over other issues
 	endpoint := createTestAgentEndpointWithConditions("test-endpoint", "default", []metav1.Condition{
 		{
-			Type:    string(ngrokv1alpha1.AgentEndpointConditionEndpointCreated),
+			Type:    string(ConditionEndpointCreated),
 			Status:  metav1.ConditionFalse,
-			Reason:  string(ngrokv1alpha1.AgentEndpointReasonNgrokAPIError),
+			Reason:  string(ReasonNgrokAPIError),
 			Message: "Failed to create endpoint",
 		},
 		{
-			Type:    string(ngrokv1alpha1.AgentEndpointConditionTrafficPolicy),
+			Type:    string(ConditionTrafficPolicy),
 			Status:  metav1.ConditionFalse,
-			Reason:  string(ngrokv1alpha1.AgentEndpointReasonTrafficPolicyError),
+			Reason:  string(ReasonTrafficPolicyError),
 			Message: "Traffic policy validation failed",
 		},
 	})
@@ -235,7 +235,7 @@ func TestCalculateAgentEndpointReadyCondition_MultipleIssues(t *testing.T) {
 
 	calculateAgentEndpointReadyCondition(endpoint, domainResult)
 
-	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ngrokv1alpha1.AgentEndpointConditionReady)
+	readyCondition := conditions.FindCondition(endpoint.Status.Conditions, ConditionReady)
 	assert.NotNil(t, readyCondition)
 	assert.Equal(t, metav1.ConditionFalse, readyCondition.Status)
 	assert.Equal(t, "ProvisioningError", readyCondition.Reason)

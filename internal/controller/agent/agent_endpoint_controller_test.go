@@ -31,7 +31,6 @@ import (
 	"time"
 
 	ingressv1alpha1 "github.com/ngrok/ngrok-operator/api/ingress/v1alpha1"
-	ngrokv1alpha1 "github.com/ngrok/ngrok-operator/api/ngrok/v1alpha1"
 	domainpkg "github.com/ngrok/ngrok-operator/internal/domain"
 	"github.com/ngrok/ngrok-operator/internal/testutils"
 	"github.com/ngrok/ngrok-operator/pkg/agent"
@@ -52,7 +51,7 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 	var (
 		namespace     string
-		agentEndpoint *ngrokv1alpha1.AgentEndpoint
+		agentEndpoint *AgentEndpoint
 	)
 
 	BeforeEach(func() {
@@ -86,14 +85,14 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 	Context("Basic endpoint operations", func() {
 		It("should successfully reconcile TCP endpoint", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "tcp-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://1.tcp.ngrok.io:12345",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
 				},
@@ -108,14 +107,14 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to reconcile and set ready condition")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
 				// Check ready condition set by running controller
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionTrue))
-				g.Expect(cond.Reason).To(Equal(string(ngrokv1alpha1.AgentEndpointReasonActive)))
+				g.Expect(cond.Reason).To(Equal(string(ReasonActive)))
 
 				// Verify status fields set by controller
 				g.Expect(obj.Status.AssignedURL).To(Equal("tcp://1.tcp.ngrok.io:12345"))
@@ -124,14 +123,14 @@ var _ = Describe("AgentEndpoint Controller", func() {
 		})
 
 		It("should handle internal endpoints without domain creation", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "internal-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "https://test.internal",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://internal-service:80",
 					},
 				},
@@ -146,10 +145,10 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to reconcile internal endpoint")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 				g.Expect(obj.Status.AssignedURL).To(Equal("https://test.internal"))
@@ -157,14 +156,14 @@ var _ = Describe("AgentEndpoint Controller", func() {
 		})
 
 		It("should create domain CR for custom domains", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "custom-domain-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "https://custom.example.com",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
 				},
@@ -175,7 +174,7 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to create domain and set domain creation condition")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
 				// Check domain creation condition
@@ -195,14 +194,14 @@ var _ = Describe("AgentEndpoint Controller", func() {
 		})
 
 		It("should handle endpoint creation failure", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "failing-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://2.tcp.ngrok.io:54321",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
 				},
@@ -215,26 +214,26 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to reconcile and set error condition")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
 				// Check error condition set by running controller
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal(string(ngrokv1alpha1.AgentEndpointReasonNgrokAPIError)))
+				g.Expect(cond.Reason).To(Equal(string(ReasonNgrokAPIError)))
 			}, timeout, interval).Should(Succeed())
 		})
 
 		It("should handle endpoint deletion", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "delete-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://3.tcp.ngrok.io:11111",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
 				},
@@ -274,17 +273,17 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 	Context("Traffic policy handling", func() {
 		It("should handle inline traffic policy", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "inline-policy-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://4.tcp.ngrok.io:44444",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
-					TrafficPolicy: &ngrokv1alpha1.TrafficPolicyCfg{
+					TrafficPolicy: &TrafficPolicyCfg{
 						Inline: []byte(`{"on_http_request":[]}`),
 					},
 				},
@@ -299,12 +298,12 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to reconcile and apply inline policy")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
 				g.Expect(obj.Status.AttachedTrafficPolicy).To(Equal("inline"))
 
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 			}, timeout, interval).Should(Succeed())
@@ -323,29 +322,29 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 		It("should resolve traffic policy reference", func(ctx SpecContext) {
 			// Create traffic policy
-			trafficPolicy := &ngrokv1alpha1.NgrokTrafficPolicy{
+			trafficPolicy := &NgrokTrafficPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "referenced-policy",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.NgrokTrafficPolicySpec{
+				Spec: NgrokTrafficPolicySpec{
 					Policy: []byte(`{"on_http_request":[{"name":"rate-limit"}]}`),
 				},
 			}
 			Expect(k8sClient.Create(ctx, trafficPolicy)).To(Succeed())
 
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "ref-policy-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://5.tcp.ngrok.io:55555",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
-					TrafficPolicy: &ngrokv1alpha1.TrafficPolicyCfg{
-						Reference: &ngrokv1alpha1.K8sObjectRef{
+					TrafficPolicy: &TrafficPolicyCfg{
+						Reference: &K8sObjectRef{
 							Name: "referenced-policy",
 						},
 					},
@@ -361,12 +360,12 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to reconcile and resolve policy reference")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
 				g.Expect(obj.Status.AttachedTrafficPolicy).To(Equal("referenced-policy"))
 
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 			}, timeout, interval).Should(Succeed())
@@ -384,18 +383,18 @@ var _ = Describe("AgentEndpoint Controller", func() {
 		})
 
 		It("should handle missing traffic policy reference", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "missing-policy-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://6.tcp.ngrok.io:66666",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
-					TrafficPolicy: &ngrokv1alpha1.TrafficPolicyCfg{
-						Reference: &ngrokv1alpha1.K8sObjectRef{
+					TrafficPolicy: &TrafficPolicyCfg{
+						Reference: &K8sObjectRef{
 							Name: "missing-policy",
 						},
 					},
@@ -407,31 +406,31 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to detect missing policy and set error condition")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
-				policyCondition := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionTrafficPolicy))
+				policyCondition := testutils.FindCondition(obj.Status.Conditions, string(ConditionTrafficPolicy))
 				g.Expect(policyCondition).NotTo(BeNil())
 				g.Expect(policyCondition.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(policyCondition.Reason).To(Equal(string(ngrokv1alpha1.AgentEndpointReasonTrafficPolicyError)))
+				g.Expect(policyCondition.Reason).To(Equal(string(ReasonTrafficPolicyError)))
 			}, timeout, interval).Should(Succeed())
 		})
 
 		It("should reject both inline and reference policy at validation", func() {
 			// This should be caught by k8s validation, so we expect the Create to fail
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "invalid-policy-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://7.tcp.ngrok.io:77777",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
-					TrafficPolicy: &ngrokv1alpha1.TrafficPolicyCfg{
+					TrafficPolicy: &TrafficPolicyCfg{
 						Inline:    []byte(`{}`),
-						Reference: &ngrokv1alpha1.K8sObjectRef{Name: "policy"},
+						Reference: &K8sObjectRef{Name: "policy"},
 					},
 				},
 			}
@@ -445,29 +444,29 @@ var _ = Describe("AgentEndpoint Controller", func() {
 	Context("when AgentEndpoint references a TrafficPolicy", func() {
 		It("should successfully apply traffic policy", func(ctx SpecContext) {
 			// Create a traffic policy
-			trafficPolicy := &ngrokv1alpha1.NgrokTrafficPolicy{
+			trafficPolicy := &NgrokTrafficPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-policy",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.NgrokTrafficPolicySpec{
+				Spec: NgrokTrafficPolicySpec{
 					Policy: []byte(`{"inbound":[{"type":"deny"}]}`),
 				},
 			}
 			Expect(k8sClient.Create(ctx, trafficPolicy)).To(Succeed())
 
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-endpoint-with-policy",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://10.tcp.ngrok.io:10101",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
-					TrafficPolicy: &ngrokv1alpha1.TrafficPolicyCfg{
-						Reference: &ngrokv1alpha1.K8sObjectRef{
+					TrafficPolicy: &TrafficPolicyCfg{
+						Reference: &K8sObjectRef{
 							Name: "test-policy",
 						},
 					},
@@ -484,11 +483,11 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to reconcile and apply traffic policy")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
 				// Check ready condition
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 
@@ -510,29 +509,29 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 		It("should reconcile when traffic policy is updated", func(ctx SpecContext) {
 			// Create a traffic policy
-			trafficPolicy := &ngrokv1alpha1.NgrokTrafficPolicy{
+			trafficPolicy := &NgrokTrafficPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "update-policy",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.NgrokTrafficPolicySpec{
+				Spec: NgrokTrafficPolicySpec{
 					Policy: []byte(`{"inbound":[{"type":"deny"}]}`),
 				},
 			}
 			Expect(k8sClient.Create(ctx, trafficPolicy)).To(Succeed())
 
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "update-policy-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://11.tcp.ngrok.io:11111",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
-					TrafficPolicy: &ngrokv1alpha1.TrafficPolicyCfg{
-						Reference: &ngrokv1alpha1.K8sObjectRef{
+					TrafficPolicy: &TrafficPolicyCfg{
+						Reference: &K8sObjectRef{
 							Name: "update-policy",
 						},
 					},
@@ -586,14 +585,14 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 	Context("when AgentEndpoint creation fails", func() {
 		It("should set appropriate error conditions", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "failing-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://12.tcp.ngrok.io:12121",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
 				},
@@ -607,14 +606,14 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to reconcile and set error conditions")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
 				// Check ready condition is false
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal(string(ngrokv1alpha1.AgentEndpointReasonNgrokAPIError)))
+				g.Expect(cond.Reason).To(Equal(string(ReasonNgrokAPIError)))
 			}, timeout, interval).Should(Succeed())
 
 			By("Verifying the mock driver was called for this specific endpoint")
@@ -631,14 +630,14 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 	Context("when AgentEndpoint is deleted", func() {
 		It("should call delete on the mock driver", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "delete-test-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://13.tcp.ngrok.io:13131",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
 				},
@@ -679,17 +678,17 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 	Context("Client certificate handling", func() {
 		It("should handle missing client certificate secret", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "missing-cert-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://8.tcp.ngrok.io:88888",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
-					ClientCertificateRefs: []ngrokv1alpha1.K8sObjectRefOptionalNamespace{
+					ClientCertificateRefs: []K8sObjectRefOptionalNamespace{
 						{Name: "missing-secret"},
 					},
 				},
@@ -700,13 +699,13 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to reconcile and set config error condition")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal(string(ngrokv1alpha1.AgentEndpointReasonConfigError)))
+				g.Expect(cond.Reason).To(Equal(string(ReasonConfigError)))
 			}, timeout, interval).Should(Succeed())
 		})
 
@@ -724,17 +723,17 @@ var _ = Describe("AgentEndpoint Controller", func() {
 			}
 			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "invalid-cert-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://9.tcp.ngrok.io:99999",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
-					ClientCertificateRefs: []ngrokv1alpha1.K8sObjectRefOptionalNamespace{
+					ClientCertificateRefs: []K8sObjectRefOptionalNamespace{
 						{Name: "invalid-cert"},
 					},
 				},
@@ -745,13 +744,13 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to reconcile and set config error condition")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal(string(ngrokv1alpha1.AgentEndpointReasonConfigError)))
+				g.Expect(cond.Reason).To(Equal(string(ReasonConfigError)))
 			}, timeout, interval).Should(Succeed())
 		})
 
@@ -768,17 +767,17 @@ var _ = Describe("AgentEndpoint Controller", func() {
 			}
 			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "no-crt-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://10.tcp.ngrok.io:10000",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
-					ClientCertificateRefs: []ngrokv1alpha1.K8sObjectRefOptionalNamespace{
+					ClientCertificateRefs: []K8sObjectRefOptionalNamespace{
 						{Name: "no-crt-secret"},
 					},
 				},
@@ -789,13 +788,13 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to reconcile and set config error condition")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal(string(ngrokv1alpha1.AgentEndpointReasonConfigError)))
+				g.Expect(cond.Reason).To(Equal(string(ReasonConfigError)))
 			}, timeout, interval).Should(Succeed())
 		})
 	})
@@ -807,14 +806,14 @@ var _ = Describe("AgentEndpoint Controller", func() {
 		)
 
 		It("should reconcile TCP endpoint automatically using Eventually", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "tcp-runtime-auto",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://99.tcp.ngrok.io:99999",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
 				},
@@ -830,14 +829,14 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to automatically reconcile")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
 				// Check ready condition set by running controller
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionTrue))
-				g.Expect(cond.Reason).To(Equal(string(ngrokv1alpha1.AgentEndpointReasonActive)))
+				g.Expect(cond.Reason).To(Equal(string(ReasonActive)))
 
 				// Verify status fields set by controller
 				g.Expect(obj.Status.AssignedURL).To(Equal("tcp://99.tcp.ngrok.io:99999"))
@@ -855,14 +854,14 @@ var _ = Describe("AgentEndpoint Controller", func() {
 		})
 
 		It("should handle endpoint creation failure with runtime controller", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "fail-runtime-auto",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://98.tcp.ngrok.io:98989",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
 				},
@@ -876,26 +875,26 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to automatically reconcile and set error condition")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
 				// Check ready condition set by running controller
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal(string(ngrokv1alpha1.AgentEndpointReasonNgrokAPIError)))
+				g.Expect(cond.Reason).To(Equal(string(ReasonNgrokAPIError)))
 			}, timeout, interval).Should(Succeed())
 		})
 
 		It("should handle endpoint deletion with runtime controller", func(ctx SpecContext) {
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "delete-runtime-auto",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://97.tcp.ngrok.io:97979",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
 				},
@@ -937,29 +936,29 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 		It("should reconcile traffic policy reference with runtime controller", func(ctx SpecContext) {
 			// Create traffic policy first
-			trafficPolicy := &ngrokv1alpha1.NgrokTrafficPolicy{
+			trafficPolicy := &NgrokTrafficPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "runtime-auto-policy",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.NgrokTrafficPolicySpec{
+				Spec: NgrokTrafficPolicySpec{
 					Policy: []byte(`{"on_http_request":[{"name":"rate-limit"}]}`),
 				},
 			}
 			Expect(k8sClient.Create(ctx, trafficPolicy)).To(Succeed())
 
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "policy-runtime-auto",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://96.tcp.ngrok.io:96969",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
-					TrafficPolicy: &ngrokv1alpha1.TrafficPolicyCfg{
-						Reference: &ngrokv1alpha1.K8sObjectRef{
+					TrafficPolicy: &TrafficPolicyCfg{
+						Reference: &K8sObjectRef{
 							Name: "runtime-auto-policy",
 						},
 					},
@@ -976,11 +975,11 @@ var _ = Describe("AgentEndpoint Controller", func() {
 
 			By("Waiting for controller to reconcile and apply traffic policy")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
 				// Check ready condition
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 
@@ -1056,17 +1055,17 @@ cCzFoVcb6XWg4MpPeZ25v+xA
 
 		It("should reconcile when client certificate secret is created after AgentEndpoint", func(ctx SpecContext) {
 			// Create AgentEndpoint first, without the certificate secret existing yet
-			agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
+			agentEndpoint = &AgentEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cert-watch-endpoint",
 					Namespace: namespace,
 				},
-				Spec: ngrokv1alpha1.AgentEndpointSpec{
+				Spec: AgentEndpointSpec{
 					URL: "tcp://cert-watch.tcp.ngrok.io:12345",
-					Upstream: ngrokv1alpha1.EndpointUpstream{
+					Upstream: EndpointUpstream{
 						URL: "http://test-service:80",
 					},
-					ClientCertificateRefs: []ngrokv1alpha1.K8sObjectRefOptionalNamespace{
+					ClientCertificateRefs: []K8sObjectRefOptionalNamespace{
 						{Name: "watch-test-cert"},
 					},
 				},
@@ -1077,14 +1076,14 @@ cCzFoVcb6XWg4MpPeZ25v+xA
 
 			By("Waiting for controller to reconcile and set config error condition")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
 				// Should have config error because certificate doesn't exist yet
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal(string(ngrokv1alpha1.AgentEndpointReasonConfigError)))
+				g.Expect(cond.Reason).To(Equal(string(ReasonConfigError)))
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating the client certificate secret")
@@ -1108,14 +1107,14 @@ cCzFoVcb6XWg4MpPeZ25v+xA
 
 			By("Waiting for controller to automatically reconcile AgentEndpoint when secret is created")
 			Eventually(func(g Gomega) {
-				obj := &ngrokv1alpha1.AgentEndpoint{}
+				obj := &AgentEndpoint{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
 
 				// Should now be ready because certificate exists
-				cond := testutils.FindCondition(obj.Status.Conditions, string(ngrokv1alpha1.AgentEndpointConditionReady))
+				cond := testutils.FindCondition(obj.Status.Conditions, string(ConditionReady))
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionTrue))
-				g.Expect(cond.Reason).To(Equal(string(ngrokv1alpha1.AgentEndpointReasonActive)))
+				g.Expect(cond.Reason).To(Equal(string(ReasonActive)))
 
 				// Verify status was updated
 				g.Expect(obj.Status.AssignedURL).To(Equal("tcp://cert-watch.tcp.ngrok.io:12345"))
