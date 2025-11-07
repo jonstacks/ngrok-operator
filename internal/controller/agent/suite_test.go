@@ -11,6 +11,7 @@ import (
 	"github.com/ngrok/ngrok-operator/pkg/agent"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -21,15 +22,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
-var cfg *rest.Config
-var k8sClient client.Client
-var testEnv *envtest.Environment
+var (
+	cfg       *rest.Config
+	k8sClient client.Client
+	testEnv   *envtest.Environment
 
-// Env test manager and mock driver for controller runtime tests
-var envMgr ctrl.Manager
-var envCtx context.Context
-var envCancel context.CancelFunc
-var envMockDriver *agent.MockAgentDriver
+	// Env test manager and mock driver for controller runtime tests
+	envMgr        ctrl.Manager
+	envCtx        context.Context
+	envCancel     context.CancelFunc
+	envMockDriver *agent.MockAgentDriver
+)
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -37,7 +40,13 @@ func TestControllers(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+	logf.SetLogger(
+		zap.New(
+			zap.WriteTo(GinkgoWriter),
+			zap.UseDevMode(true),
+			zap.Level(zapcore.Level(-9)),
+		),
+	)
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -64,7 +73,11 @@ var _ = BeforeSuite(func() {
 	envCtx, envCancel = context.WithCancel(context.Background())
 
 	// Initialize mock driver
-	envMockDriver = agent.NewMockAgentDriver()
+	envMockDriver = agent.NewMockAgentDriver(
+	// agent.WithMockAgentDriverLogger(
+	// 	logf.Log.WithName("mock-agent-driver").V(3),
+	// ),
+	)
 
 	// Create dedicated manager for env tests
 	envMgr, err = ctrl.NewManager(cfg, ctrl.Options{

@@ -5,11 +5,14 @@ import (
 	"crypto/tls"
 	"net/http"
 
+	"github.com/go-logr/logr"
 	ngrokv1alpha1 "github.com/ngrok/ngrok-operator/api/ngrok/v1alpha1"
 )
 
 // MockAgentDriver is a mock implementation of Driver for testing purposes
 type MockAgentDriver struct {
+	logger logr.Logger
+
 	createResults map[string]*EndpointResult // keyed by endpoint name
 	createErrors  map[string]error           // keyed by endpoint name
 	deleteErrors  map[string]error           // keyed by endpoint name
@@ -37,27 +40,43 @@ type DeleteCall struct {
 	Name string
 }
 
+type MockAgentDriverOption func(*MockAgentDriver)
+
+func WithMockAgentDriverLogger(logger logr.Logger) MockAgentDriverOption {
+	return func(m *MockAgentDriver) {
+		m.logger = logger
+	}
+}
+
 // NewMockAgentDriver creates a new mock agent driver
-func NewMockAgentDriver() *MockAgentDriver {
-	return &MockAgentDriver{
+func NewMockAgentDriver(opts ...MockAgentDriverOption) *MockAgentDriver {
+	d := &MockAgentDriver{
+		logger:        logr.Discard(),
 		createResults: make(map[string]*EndpointResult),
 		createErrors:  make(map[string]error),
 		deleteErrors:  make(map[string]error),
 	}
+	for _, opt := range opts {
+		opt(d)
+	}
+	return d
 }
 
 // SetEndpointResult configures the mock to return specific results for an endpoint
 func (m *MockAgentDriver) SetEndpointResult(name string, result *EndpointResult) {
+	m.logger.Info("Setting mock endpoint result", "name", name, "result", result)
 	m.createResults[name] = result
 }
 
 // SetEndpointError configures the mock to return specific errors for an endpoint
 func (m *MockAgentDriver) SetEndpointError(name string, err error) {
+	m.logger.Info("Setting mock endpoint error", "name", name, "error", err)
 	m.createErrors[name] = err
 }
 
 // Reset clears all configured results and errors
 func (m *MockAgentDriver) Reset() {
+	m.logger.Info("Resetting mock agent driver")
 	m.createResults = make(map[string]*EndpointResult)
 	m.createErrors = make(map[string]error)
 	m.deleteErrors = make(map[string]error)
@@ -70,6 +89,13 @@ func (m *MockAgentDriver) Reset() {
 
 // CreateAgentEndpoint implements Driver interface
 func (m *MockAgentDriver) CreateAgentEndpoint(_ context.Context, name string, spec ngrokv1alpha1.AgentEndpointSpec, trafficPolicy string, clientCerts []tls.Certificate) (*EndpointResult, error) {
+	m.logger.WithValues(
+		"name", name,
+		"spec", spec,
+		"trafficPolicy", trafficPolicy,
+		"clientCerts", clientCerts,
+	).Info("Mock CreateAgentEndpoint called")
+
 	// Track the call
 	m.CreateCalls = append(m.CreateCalls, CreateCall{
 		Name:          name,
@@ -92,6 +118,8 @@ func (m *MockAgentDriver) CreateAgentEndpoint(_ context.Context, name string, sp
 
 // DeleteAgentEndpoint implements Driver interface
 func (m *MockAgentDriver) DeleteAgentEndpoint(_ context.Context, name string) error {
+	m.logger.WithValues("name", name).Info("Mock DeleteAgentEndpoint called")
+
 	// Track the call
 	m.DeleteCalls = append(m.DeleteCalls, DeleteCall{
 		Name: name,
@@ -105,10 +133,12 @@ func (m *MockAgentDriver) DeleteAgentEndpoint(_ context.Context, name string) er
 
 // Ready implements healthcheck.HealthChecker interface
 func (m *MockAgentDriver) Ready(_ context.Context, _ *http.Request) error {
+	m.logger.V(1).Info("Mock Ready called")
 	return nil
 }
 
 // Alive implements healthcheck.HealthChecker interface
 func (m *MockAgentDriver) Alive(_ context.Context, _ *http.Request) error {
+	m.logger.V(1).Info("Mock Alive called")
 	return nil
 }

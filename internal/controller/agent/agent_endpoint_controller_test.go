@@ -41,7 +41,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -1201,34 +1200,17 @@ cCzFoVcb6XWg4MpPeZ25v+xA
 		When("the domainRef for kubernetes-bound endpoint is stale", func() {
 			var staleDomain *ingressv1alpha1.Domain
 			BeforeEach(func(ctx SpecContext) {
-				By("Creating a domain that would be stale")
-				staleDomain = &ingressv1alpha1.Domain{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "stale-domain-ref",
-						Namespace: namespace,
-					},
-					Spec: ingressv1alpha1.DomainSpec{
-						Domain: "test.default",
-					},
-				}
-				Expect(k8sClient.Create(ctx, staleDomain)).To(Succeed())
-
+				By("Creating AgentEndpoint without kubernetes binding so domain gets created")
 				agentEndpoint = &ngrokv1alpha1.AgentEndpoint{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "k8s-binding-with-stale-ref",
 						Namespace: namespace,
 					},
 					Spec: ngrokv1alpha1.AgentEndpointSpec{
-						URL:      "http://test.default",
-						Bindings: []string{"kubernetes"},
+						URL: "http://test.default",
+						// No bindings initially - domain should be created
 						Upstream: ngrokv1alpha1.EndpointUpstream{
 							URL: "http://test-service:80",
-						},
-					},
-					Status: ngrokv1alpha1.AgentEndpointStatus{
-						DomainRef: &ngrokv1alpha1.K8sObjectRefOptionalNamespace{
-							Name:      staleDomain.GetName(),
-							Namespace: ptr.To(staleDomain.GetNamespace()),
 						},
 					},
 				}
@@ -1236,8 +1218,26 @@ cCzFoVcb6XWg4MpPeZ25v+xA
 					URL: "http://test.default",
 				})
 
-				By("Creating the AgentEndpoint with stale domainRef")
 				Expect(k8sClient.Create(ctx, agentEndpoint)).To(Succeed())
+
+				By("Waiting for Domain to be created and domainRef to be set")
+				Eventually(func(g Gomega) {
+					obj := &ngrokv1alpha1.AgentEndpoint{}
+					g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
+					g.Expect(obj.Status.DomainRef).NotTo(BeNil())
+					staleDomain = &ingressv1alpha1.Domain{}
+					domainKey := obj.Status.DomainRef.ToClientObjectKey(obj.GetNamespace())
+					g.Expect(k8sClient.Get(ctx, domainKey, staleDomain)).To(Succeed())
+					g.Expect(staleDomain.Spec.Domain).To(Equal("test.default"))
+				}, timeout, interval).Should(Succeed())
+
+				By("Updating AgentEndpoint to add kubernetes binding, making domain stale")
+				Eventually(func(g Gomega) {
+					obj := &ngrokv1alpha1.AgentEndpoint{}
+					g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(agentEndpoint), obj)).To(Succeed())
+					obj.Spec.Bindings = []string{"kubernetes"}
+					g.Expect(k8sClient.Update(ctx, obj)).To(Succeed())
+				}, timeout, interval).Should(Succeed())
 			})
 
 			It("should clear the stale domainRef", func(ctx SpecContext) {
