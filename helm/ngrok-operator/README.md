@@ -175,3 +175,9 @@ To uninstall the chart:
 | `bindings.forwarder.tolerations`                   | Tolerations for the bindings forwarder pod(s)                                                                 | `[]`                                      |
 | `bindings.forwarder.nodeSelector`                  | Node labels for the bindings forwarder pod(s)                                                                 | `{}`                                      |
 | `bindings.forwarder.topologySpreadConstraints`     | Topology Spread Constraints for the bindings forwarder pod(s)                                                 | `[]`                                      |
+
+### Custom Resource Definitions installation
+
+| Name          | Description                                                        | Value  |
+| ------------- | ------------------------------------------------------------------ | ------ |
+| `installCRDs` | When true, the ngrok CRDs will be installed alongside the operator | `true` |

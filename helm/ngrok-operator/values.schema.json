@@ -546,6 +546,11 @@
                     }
                 }
             }
+        },
+        "installCRDs": {
+            "type": "boolean",
+            "description": "When true, the ngrok CRDs will be installed alongside the operator",
+            "default": true
         }
     }
 }
