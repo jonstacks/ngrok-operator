@@ -99,8 +99,12 @@ deploy_multi_namespace: _deploy-check-env-vars docker-build manifests _helm_setu
 	$(HELM) upgrade ngrok-operator-a $(HELM_CHART_DIR) --install \
 		--kube-context=kind-$(KIND_CLUSTER_NAME) \
 		--namespace namespace-a \
+		--set installCRDs=false \
 		--set image.repository=$(IMG) \
 		--set image.tag="latest" \
+		--set ingress.controllerName="k8s.ngrok.com/ingress-controller-a" \
+		--set ingress.ingressClass.name="ngrok-a" \
+		--set ingress.watchNamespace="namespace-a" \
 		--set watchNamespace=namespace-a \
 		--set credentials.apiKey=$(NGROK_API_KEY) \
 		--set credentials.authtoken=$(NGROK_AUTHTOKEN) \
@@ -113,6 +117,10 @@ deploy_multi_namespace: _deploy-check-env-vars docker-build manifests _helm_setu
 	$(HELM) upgrade ngrok-operator-b $(HELM_CHART_DIR) --install \
 		--kube-context=kind-$(KIND_CLUSTER_NAME) \
 		--namespace namespace-b \
+		--set installCRDs=false \
+		--set ingress.controllerName="k8s.ngrok.com/ingress-controller-b" \
+		--set ingress.ingressClass.name="ngrok-b" \
+		--set ingress.watchNamespace="namespace-b" \
 		--set image.repository=$(IMG) \
 		--set image.tag="latest" \
 		--set watchNamespace=namespace-b \
@@ -130,7 +138,7 @@ get_k8s_all:
 
 .PHONY: kind-load-image
 kind-load-image: kind ## Load the locally built image into the kind cluster.
-	$(KIND) load docker-image $(IMG) --name $(KIND_CLUSTER_NAME)
+	kind load docker-image $(IMG) --name $(KIND_CLUSTER_NAME)
 
 .PHONY: _deploy-check-env-vars
 _deploy-check-env-vars:
