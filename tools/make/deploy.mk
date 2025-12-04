@@ -85,7 +85,48 @@ deploy_for_e2e: _deploy-check-env-vars docker-build manifests _helm_setup kind-l
 		--set bindings.serviceLabels.label1="val1"
 
 .PHONY: deploy_multi_namespace
+## 1. We want to install the CRDs only once at the beginning
+## 2. We want to make a namespace-a and namespace-b
+## 3. We want to install the helm chart twice, watching only the namespace belonging to each one
 deploy_multi_namespace: _deploy-check-env-vars docker-build manifests _helm_setup kind-load-image ## Deploy multiple copies of the controller to the K8s cluster specified in ~/.kube/config.
+	$(HELM) upgrade ngrok-operator-crds $(CRD_CHART_DIR) --install \
+		--kube-context=kind-$(KIND_CLUSTER_NAME) \
+	    --namespace kube-system \
+		--create-namespace
+	kubectl --context=kind-$(KIND_CLUSTER_NAME) create namespace namespace-a || true
+	kubectl --context=kind-$(KIND_CLUSTER_NAME) create namespace namespace-b || true
+
+	$(HELM) upgrade ngrok-operator-a $(HELM_CHART_DIR) --install \
+		--kube-context=kind-$(KIND_CLUSTER_NAME) \
+		--namespace namespace-a \
+		--set image.repository=$(IMG) \
+		--set image.tag="latest" \
+		--set watchNamespace=namespace-a \
+		--set credentials.apiKey=$(NGROK_API_KEY) \
+		--set credentials.authtoken=$(NGROK_AUTHTOKEN) \
+		--set log.format=console \
+		--set-string log.level="8" \
+		--set log.stacktraceLevel=panic \
+		--set metaData.env=local,metaData.from=makefile \
+		$(HELM_DESCRIPTION_FLAG)
+
+	$(HELM) upgrade ngrok-operator-b $(HELM_CHART_DIR) --install \
+		--kube-context=kind-$(KIND_CLUSTER_NAME) \
+		--namespace namespace-b \
+		--set image.repository=$(IMG) \
+		--set image.tag="latest" \
+		--set watchNamespace=namespace-b \
+		--set credentials.apiKey=$(NGROK_API_KEY) \
+		--set credentials.authtoken=$(NGROK_AUTHTOKEN) \
+		--set log.format=console \
+		--set-string log.level="8" \
+		--set log.stacktraceLevel=panic \
+		--set metaData.env=local,metaData.from=makefile \
+		$(HELM_DESCRIPTION_FLAG)
+
+.PHONY: get_k8s_all
+get_k8s_all:
+	kubectl --context=kind-$(KIND_CLUSTER_NAME) get all --all-namespaces
 
 .PHONY: kind-load-image
 kind-load-image: kind ## Load the locally built image into the kind cluster.
