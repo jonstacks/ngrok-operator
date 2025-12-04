@@ -4,8 +4,8 @@ Should match all-options snapshot:
     kind: Deployment
     metadata:
       annotations:
-        checksum/controller-role: e108215aa508729e0a9d9a12bed3b67d1fef8007aecee1e86b8d3ea8f872b829
-        checksum/rbac: 5d27f1783f54a2ab8e69f9bfce35eef2348fda3f6455526619973781d9549322
+        checksum/controller-role: d9635b58744f82244679958997c54649ed489edba2827fcf59acd7b45a27811d
+        checksum/rbac: d9cc65d2f7cff9b5157369f970cf16bc88fb14df6802d580e5cb7ef57b569bcd
       labels:
         app.kubernetes.io/component: controller
         app.kubernetes.io/instance: RELEASE-NAME
@@ -26,8 +26,8 @@ Should match all-options snapshot:
       template:
         metadata:
           annotations:
-            checksum/controller-role: e108215aa508729e0a9d9a12bed3b67d1fef8007aecee1e86b8d3ea8f872b829
-            checksum/rbac: 5d27f1783f54a2ab8e69f9bfce35eef2348fda3f6455526619973781d9549322
+            checksum/controller-role: d9635b58744f82244679958997c54649ed489edba2827fcf59acd7b45a27811d
+            checksum/rbac: d9cc65d2f7cff9b5157369f970cf16bc88fb14df6802d580e5cb7ef57b569bcd
             checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
             prometheus.io/path: /metrics
             prometheus.io/port: "8080"
@@ -121,7 +121,7 @@ Should match all-options snapshot:
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
-      name: ngrok-operator-leader-election-role
+      name: RELEASE-NAME-ngrok-operator-leader-election-role
       namespace: NAMESPACE
     rules:
       - apiGroups:
@@ -159,7 +159,7 @@ Should match all-options snapshot:
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
-      name: ngrok-operator-proxy-role
+      name: RELEASE-NAME-ngrok-operator-proxy-role
     rules:
       - apiGroups:
           - authentication.k8s.io
@@ -177,12 +177,12 @@ Should match all-options snapshot:
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
-      name: ngrok-operator-leader-election-rolebinding
+      name: RELEASE-NAME-ngrok-operator-leader-election-rolebinding
       namespace: NAMESPACE
     roleRef:
       apiGroup: rbac.authorization.k8s.io
       kind: Role
-      name: ngrok-operator-leader-election-role
+      name: RELEASE-NAME-ngrok-operator-leader-election-role
     subjects:
       - kind: ServiceAccount
         name: RELEASE-NAME-ngrok-operator
@@ -191,11 +191,11 @@ Should match all-options snapshot:
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
-      name: ngrok-operator-manager-rolebinding
+      name: RELEASE-NAME-ngrok-operator-manager-rolebinding
     roleRef:
       apiGroup: rbac.authorization.k8s.io
       kind: ClusterRole
-      name: ngrok-operator-manager-role
+      name: RELEASE-NAME-ngrok-operator-manager-role
     subjects:
       - kind: ServiceAccount
         name: RELEASE-NAME-ngrok-operator
@@ -204,11 +204,11 @@ Should match all-options snapshot:
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
-      name: ngrok-operator-proxy-rolebinding
+      name: RELEASE-NAME-ngrok-operator-proxy-rolebinding
     roleRef:
       apiGroup: rbac.authorization.k8s.io
       kind: ClusterRole
-      name: ngrok-operator-proxy-role
+      name: RELEASE-NAME-ngrok-operator-proxy-role
     subjects:
       - kind: ServiceAccount
         name: RELEASE-NAME-ngrok-operator
@@ -217,7 +217,7 @@ Should match all-options snapshot:
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
-      name: ngrok-operator-manager-role
+      name: RELEASE-NAME-ngrok-operator
     rules:
       - apiGroups:
           - ""
@@ -605,8 +605,8 @@ Should match default snapshot:
     kind: Deployment
     metadata:
       annotations:
-        checksum/controller-role: e108215aa508729e0a9d9a12bed3b67d1fef8007aecee1e86b8d3ea8f872b829
-        checksum/rbac: 5d27f1783f54a2ab8e69f9bfce35eef2348fda3f6455526619973781d9549322
+        checksum/controller-role: d9635b58744f82244679958997c54649ed489edba2827fcf59acd7b45a27811d
+        checksum/rbac: d9cc65d2f7cff9b5157369f970cf16bc88fb14df6802d580e5cb7ef57b569bcd
       labels:
         app.kubernetes.io/component: controller
         app.kubernetes.io/instance: RELEASE-NAME
@@ -627,8 +627,8 @@ Should match default snapshot:
       template:
         metadata:
           annotations:
-            checksum/controller-role: e108215aa508729e0a9d9a12bed3b67d1fef8007aecee1e86b8d3ea8f872b829
-            checksum/rbac: 5d27f1783f54a2ab8e69f9bfce35eef2348fda3f6455526619973781d9549322
+            checksum/controller-role: d9635b58744f82244679958997c54649ed489edba2827fcf59acd7b45a27811d
+            checksum/rbac: d9cc65d2f7cff9b5157369f970cf16bc88fb14df6802d580e5cb7ef57b569bcd
             checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
             prometheus.io/path: /metrics
             prometheus.io/port: "8080"
@@ -709,7 +709,7 @@ Should match default snapshot:
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
-      name: ngrok-operator-leader-election-role
+      name: RELEASE-NAME-ngrok-operator-leader-election-role
       namespace: NAMESPACE
     rules:
       - apiGroups:
@@ -747,7 +747,7 @@ Should match default snapshot:
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
-      name: ngrok-operator-proxy-role
+      name: RELEASE-NAME-ngrok-operator-proxy-role
     rules:
       - apiGroups:
           - authentication.k8s.io
@@ -765,12 +765,12 @@ Should match default snapshot:
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
-      name: ngrok-operator-leader-election-rolebinding
+      name: RELEASE-NAME-ngrok-operator-leader-election-rolebinding
       namespace: NAMESPACE
     roleRef:
       apiGroup: rbac.authorization.k8s.io
       kind: Role
-      name: ngrok-operator-leader-election-role
+      name: RELEASE-NAME-ngrok-operator-leader-election-role
     subjects:
       - kind: ServiceAccount
         name: RELEASE-NAME-ngrok-operator
@@ -779,11 +779,11 @@ Should match default snapshot:
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
-      name: ngrok-operator-manager-rolebinding
+      name: RELEASE-NAME-ngrok-operator-manager-rolebinding
     roleRef:
       apiGroup: rbac.authorization.k8s.io
       kind: ClusterRole
-      name: ngrok-operator-manager-role
+      name: RELEASE-NAME-ngrok-operator-manager-role
     subjects:
       - kind: ServiceAccount
         name: RELEASE-NAME-ngrok-operator
@@ -792,11 +792,11 @@ Should match default snapshot:
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
-      name: ngrok-operator-proxy-rolebinding
+      name: RELEASE-NAME-ngrok-operator-proxy-rolebinding
     roleRef:
       apiGroup: rbac.authorization.k8s.io
       kind: ClusterRole
-      name: ngrok-operator-proxy-role
+      name: RELEASE-NAME-ngrok-operator-proxy-role
     subjects:
       - kind: ServiceAccount
         name: RELEASE-NAME-ngrok-operator
@@ -805,7 +805,7 @@ Should match default snapshot:
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
-      name: ngrok-operator-manager-role
+      name: RELEASE-NAME-ngrok-operator
     rules:
       - apiGroups:
           - ""
