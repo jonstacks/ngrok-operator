@@ -82,6 +82,7 @@ EOF
             kind
             kubebuilder
             kubectl
+            kubernetes-controller-tools
             kubernetes-helm
             kyverno-chainsaw
             ngrok

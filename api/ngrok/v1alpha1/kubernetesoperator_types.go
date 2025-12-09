@@ -50,7 +50,6 @@ type KubernetesOperatorBinding struct {
 	IngressEndpoint *string `json:"ingressEndpoint,omitempty"`
 
 	// TlsSecretName is the name of the k8s secret that contains the TLS private/public keys to use for the ngrok forwarding endpoint
-	// +kubebuilder:validation:Required
 	// +kubebuilder:default="default-tls"
 	TlsSecretName string `json:"tlsSecretName"`
 }
@@ -64,7 +63,6 @@ type KubernetesOperatorStatus struct {
 	URI string `json:"uri,omitempty"`
 
 	// RegistrationStatus is the status of the registration of this Kubernetes Operator with the ngrok API
-	// +kubebuilder:validation:Required
 	// +kube:validation:Enum=registered;error;pending
 	// +kubebuilder:default="pending"
 	RegistrationStatus string `json:"registrationStatus,omitempty"`
@@ -114,12 +112,12 @@ type KubernetesOperatorSpec struct {
 
 	// Features enabled for this Kubernetes Operator
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:items:Enum=ingress,gateway,bindings
+	// +kubebuilder:validation:items:Enum=ingress;gateway;bindings
 	EnabledFeatures []string `json:"enabledFeatures,omitempty"`
 
 	// The ngrok region in which the ingress for this operator is served. Defaults to
 	// "global" if not specified.
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="global"
 	Region string `json:"region,omitempty"`
 
