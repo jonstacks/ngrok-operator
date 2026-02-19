@@ -43,9 +43,8 @@ linters:
         - name: use-errors-new
     custom:
       kubeapilinter:
-        path: bin/kube-api-linter.so
+        type: module
         description: "Kube API Linter lints Kube like APIs based on API conventions and best practices."
-        original-url: sigs.k8s.io/kube-api-linter
         settings:
           linters: {}
           lintersConfig: {}

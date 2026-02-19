@@ -34,8 +34,8 @@
           dontNpmBuild = true;
         };
 
-        kubeApiLinterPlugin = pkgs.buildGoModule {
-          pname = "kube-api-linter-plugin";
+        golangciLintKubeApiLinter = pkgs.buildGoModule {
+          pname = "golangci-lint-kube-api-linter";
           version = "0-unstable-2026-02-06";
 
           src = pkgs.fetchFromGitHub {
@@ -47,32 +47,15 @@
 
           vendorHash = "sha256-ITaN1Ge/SVRQevmbvj9vcBE6rAPqHyydU+RNlryC1Eg=";
 
-          env.CGO_ENABLED = "1";
+          subPackages = [ "cmd/golangci-lint-kube-api-linter" ];
 
-          buildPhase = ''
-            runHook preBuild
-            go build -buildmode=plugin -o kube-api-linter.so ./pkg/plugin
-            runHook postBuild
-          '';
-
-          installPhase = ''
-            runHook preInstall
-            mkdir -p $out/lib
-            cp kube-api-linter.so $out/lib/
-            runHook postInstall
+          # Provide golangci-lint symlink so existing make targets work unchanged.
+          postInstall = ''
+            ln -s $out/bin/golangci-lint-kube-api-linter $out/bin/golangci-lint
           '';
 
           doCheck = false;
         };
-
-        # golangci-lint with CGO enabled for loading .so plugins
-        golangci-lint-cgo = pkgs.golangci-lint.overrideAttrs (old: {
-          env = (old.env or { }) // {
-            CGO_ENABLED = "1";
-          };
-          # Ensure we don't strip debug info needed for plugin loading
-          dontStrip = true;
-        });
 
         mkScript =
           name: text:
@@ -114,7 +97,7 @@
       in
       {
         packages.readme-generator-for-helm = readmeGeneratorForHelm;
-        packages.kube-api-linter-plugin = kubeApiLinterPlugin;
+        packages.golangci-lint-kube-api-linter = golangciLintKubeApiLinter;
 
         devShells.default = pkgs.mkShell {
           buildInputs =
@@ -122,7 +105,7 @@
             [
               go
               go-tools
-              golangci-lint-cgo
+              golangciLintKubeApiLinter
               gotools
               jq
               kind
@@ -152,8 +135,6 @@
           ENVTEST_K8S_VERSION = "1.34.1";
 
           shellHook = ''
-            mkdir -p bin
-            ln -sf ${kubeApiLinterPlugin}/lib/kube-api-linter.so bin/kube-api-linter.so
             export KUBEBUILDER_ASSETS="$(setup-envtest use $ENVTEST_K8S_VERSION -p path)"
             devhelp
           '';
