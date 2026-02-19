@@ -47,7 +47,7 @@
 
           vendorHash = "sha256-ITaN1Ge/SVRQevmbvj9vcBE6rAPqHyydU+RNlryC1Eg=";
 
-          CGO_ENABLED = "1";
+          env.CGO_ENABLED = "1";
 
           buildPhase = ''
             runHook preBuild
@@ -67,7 +67,9 @@
 
         # golangci-lint with CGO enabled for loading .so plugins
         golangci-lint-cgo = pkgs.golangci-lint.overrideAttrs (old: {
-          CGO_ENABLED = "1";
+          env = (old.env or { }) // {
+            CGO_ENABLED = "1";
+          };
           # Ensure we don't strip debug info needed for plugin loading
           dontStrip = true;
         });
