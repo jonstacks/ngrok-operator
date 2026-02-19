@@ -34,6 +34,44 @@
           dontNpmBuild = true;
         };
 
+        kubeApiLinterPlugin = pkgs.buildGoModule {
+          pname = "kube-api-linter-plugin";
+          version = "0-unstable-2026-02-06";
+
+          src = pkgs.fetchFromGitHub {
+            owner = "kubernetes-sigs";
+            repo = "kube-api-linter";
+            rev = "39e3d06a2850e38a8e9e82918bab14ce84e608de";
+            hash = "sha256-P7Gy8JeOxiCvy0TW9IPz9cDc/20gD9QJNEO5Tao10JY=";
+          };
+
+          vendorHash = "sha256-ITaN1Ge/SVRQevmbvj9vcBE6rAPqHyydU+RNlryC1Eg=";
+
+          CGO_ENABLED = "1";
+
+          buildPhase = ''
+            runHook preBuild
+            go build -buildmode=plugin -o kube-api-linter.so ./pkg/plugin
+            runHook postBuild
+          '';
+
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out/lib
+            cp kube-api-linter.so $out/lib/
+            runHook postInstall
+          '';
+
+          doCheck = false;
+        };
+
+        # golangci-lint with CGO enabled for loading .so plugins
+        golangci-lint-cgo = pkgs.golangci-lint.overrideAttrs (old: {
+          CGO_ENABLED = "1";
+          # Ensure we don't strip debug info needed for plugin loading
+          dontStrip = true;
+        });
+
         mkScript =
           name: text:
           let
@@ -74,6 +112,7 @@
       in
       {
         packages.readme-generator-for-helm = readmeGeneratorForHelm;
+        packages.kube-api-linter-plugin = kubeApiLinterPlugin;
 
         devShells.default = pkgs.mkShell {
           buildInputs =
@@ -81,7 +120,7 @@
             [
               go
               go-tools
-              golangci-lint
+              golangci-lint-cgo
               gotools
               jq
               kind
@@ -111,6 +150,8 @@
           ENVTEST_K8S_VERSION = "1.34.1";
 
           shellHook = ''
+            mkdir -p bin
+            ln -sf ${kubeApiLinterPlugin}/lib/kube-api-linter.so bin/kube-api-linter.so
             export KUBEBUILDER_ASSETS="$(setup-envtest use $ENVTEST_K8S_VERSION -p path)"
             devhelp
           '';
