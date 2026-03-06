@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v8"
 )
 
 // KubernetesOperatorsClient is a mock implementation of the ngrok API client for managing kubernetes operators.
@@ -104,4 +104,10 @@ func (m *KubernetesOperatorsClient) ResetBoundEndpoints() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.boundEndpoints = []ngrok.Endpoint{}
+}
+
+// List overrides baseClient.List to satisfy the Lister[*ngrok.KubernetesOperator] interface,
+// which uses *ngrok.Paging (kubernetes operators API has not moved to FilteredPaging).
+func (m *KubernetesOperatorsClient) List(_ *ngrok.Paging) ngrok.Iter[*ngrok.KubernetesOperator] {
+	return m.baseClient.List(nil)
 }

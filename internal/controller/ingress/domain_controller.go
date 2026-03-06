@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/go-logr/logr"
-	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v8"
 	"github.com/ngrok/ngrok-operator/api/ingress/v1alpha1"
 	basecontroller "github.com/ngrok/ngrok-operator/internal/controller"
 	"github.com/ngrok/ngrok-operator/internal/ngrokapi"
@@ -234,7 +234,7 @@ func (r *DomainReconciler) delete(ctx context.Context, domain *v1alpha1.Domain) 
 
 // finds the reserved domain by the hostname. If it doesn't exist, returns nil
 func (r *DomainReconciler) findReservedDomainByHostname(ctx context.Context, domainName string) (*ngrok.ReservedDomain, error) {
-	iter := r.DomainsClient.List(&ngrok.Paging{})
+	iter := r.DomainsClient.List(&ngrok.FilteredPaging{})
 	for iter.Next(ctx) {
 		domain := iter.Item()
 		if domain.Domain == domainName {

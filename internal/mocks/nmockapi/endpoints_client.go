@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v8"
 	"k8s.io/utils/ptr"
 )
 
@@ -74,4 +74,10 @@ func (m *EndpointsClient) Update(ctx context.Context, item *ngrok.EndpointUpdate
 
 	m.items[item.ID] = existingItem
 	return existingItem, nil
+}
+
+// List overrides baseClient.List to satisfy the Lister[*ngrok.Endpoint] interface,
+// which uses *ngrok.Paging (endpoints API has not moved to FilteredPaging).
+func (m *EndpointsClient) List(_ *ngrok.Paging) ngrok.Iter[*ngrok.Endpoint] {
+	return m.baseClient.List(nil)
 }
