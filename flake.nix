@@ -34,6 +34,45 @@
           dontNpmBuild = true;
         };
 
+        kubeApiLinterPlugin = pkgs.buildGoModule {
+          pname = "kube-api-linter-plugin";
+          version = "0-unstable-2026-02-19";
+
+          src = pkgs.fetchFromGitHub {
+            owner = "jonstacks";
+            repo = "kube-api-linter";
+            rev = "4d8081c836df2bcaf5ae0d173ddd9e7b1f9c2c37";
+            hash = "sha256-LTh42PzmVrCy05wphy1fV+8auO20+XgG03052TTuSu0=";
+          };
+
+          vendorHash = "sha256-RHfx8RWbuZz8iPUXFK19/FY1FtesuP3aLH6a3bKOu9I=";
+
+          env.CGO_ENABLED = "1";
+
+          buildPhase = ''
+            runHook preBuild
+            go build -buildmode=plugin -o kube-api-linter.so ./pkg/plugin
+            runHook postBuild
+          '';
+
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out/lib
+            cp kube-api-linter.so $out/lib/
+            runHook postInstall
+          '';
+
+          doCheck = false;
+        };
+
+        # golangci-lint with CGO enabled for loading .so plugins
+        golangci-lint-cgo = pkgs.golangci-lint.overrideAttrs (old: {
+          env = (old.env or { }) // {
+            CGO_ENABLED = "1";
+          };
+          dontStrip = true;
+        });
+
         mkScript =
           name: text:
           let
@@ -74,6 +113,7 @@
       in
       {
         packages.readme-generator-for-helm = readmeGeneratorForHelm;
+        packages.kube-api-linter-plugin = kubeApiLinterPlugin;
 
         devShells.default = pkgs.mkShell {
           buildInputs =
@@ -81,7 +121,7 @@
             [
               go
               go-tools
-              golangci-lint
+              golangci-lint-cgo
               gotools
               jq
               kind
@@ -111,6 +151,8 @@
           ENVTEST_K8S_VERSION = "1.34.1";
 
           shellHook = ''
+            mkdir -p bin
+            ln -sf ${kubeApiLinterPlugin}/lib/kube-api-linter.so bin/kube-api-linter.so
             export KUBEBUILDER_ASSETS="$(setup-envtest use $ENVTEST_K8S_VERSION -p path)"
             devhelp
           '';

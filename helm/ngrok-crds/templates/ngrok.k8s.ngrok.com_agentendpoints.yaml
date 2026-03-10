@@ -72,11 +72,12 @@ spec:
                 items:
                   properties:
                     name:
-                      description: The name of the Kubernetes resource being referenced
+                      description: name is the name of the Kubernetes resource being
+                        referenced
                       type: string
                     namespace:
-                      description: The namespace of the Kubernetes resource being
-                        referenced
+                      description: namespace is the namespace of the Kubernetes resource
+                        being referenced
                       type: string
                   required:
                   - name
@@ -107,7 +108,8 @@ spec:
                       the Agent Endpoint
                     properties:
                       name:
-                        description: The name of the Kubernetes resource being referenced
+                        description: name is the name of the Kubernetes resource being
+                          referenced
                         type: string
                     required:
                     - name
@@ -261,10 +263,12 @@ spec:
                 nullable: true
                 properties:
                   name:
-                    description: The name of the Kubernetes resource being referenced
+                    description: name is the name of the Kubernetes resource being
+                      referenced
                     type: string
                   namespace:
-                    description: The namespace of the Kubernetes resource being referenced
+                    description: namespace is the namespace of the Kubernetes resource
+                      being referenced
                     type: string
                 required:
                 - name
