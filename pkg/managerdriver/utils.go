@@ -31,7 +31,7 @@ func internalAgentEndpointName(serviceUID, serviceName, namespace, clusterDomain
 	if len(clientCertRefs) > 0 {
 		var tlsStr strings.Builder
 		for _, certRef := range clientCertRefs {
-			tlsStr.WriteString(fmt.Sprintf("%s.%s", certRef.Name, certRef.Namespace))
+			_, _ = tlsStr.WriteString(fmt.Sprintf("%s.%s", certRef.Name, certRef.Namespace))
 		}
 
 		tlsHash := sha256.Sum256([]byte(tlsStr.String()))
@@ -80,7 +80,7 @@ func buildInternalEndpointURL(protocol ir.IRProtocol, serviceUID, serviceName, n
 	if len(clientCertRefs) > 0 {
 		var tlsStr strings.Builder
 		for _, certRef := range clientCertRefs {
-			tlsStr.WriteString(fmt.Sprintf("%s.%s", certRef.Name, certRef.Namespace))
+			_, _ = tlsStr.WriteString(fmt.Sprintf("%s.%s", certRef.Name, certRef.Namespace))
 		}
 
 		tlsHash := sha256.Sum256([]byte(tlsStr.String()))

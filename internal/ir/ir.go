@@ -274,12 +274,12 @@ type IRServiceKey string
 
 func (s IRService) Key() IRServiceKey {
 	var key strings.Builder
-	key.WriteString(fmt.Sprintf("%s/%s/%s/%d", s.UID, s.Namespace, s.Name, s.Port))
+	_, _ = key.WriteString(fmt.Sprintf("%s/%s/%s/%d", s.UID, s.Namespace, s.Name, s.Port))
 	if s.Protocol != nil {
-		key.WriteString(fmt.Sprintf("/%s", *s.Protocol))
+		_, _ = key.WriteString(fmt.Sprintf("/%s", *s.Protocol))
 	}
 	for _, clientCertRef := range s.ClientCertRefs {
-		key.WriteString(fmt.Sprintf("/%s.%s", clientCertRef.Name, clientCertRef.Namespace))
+		_, _ = key.WriteString(fmt.Sprintf("/%s.%s", clientCertRef.Name, clientCertRef.Namespace))
 	}
 	return IRServiceKey(key.String())
 }
@@ -437,7 +437,7 @@ func headersToString(headers []IRHeaderMatch) string {
 	})
 	var s strings.Builder
 	for _, h := range hCopy {
-		s.WriteString(h.Name + ":" + string(h.ValueType) + ":" + h.Value + ";")
+		_, _ = s.WriteString(h.Name + ":" + string(h.ValueType) + ":" + h.Value + ";")
 	}
 	return s.String()
 }
@@ -459,7 +459,7 @@ func queryParamsToString(qps []IRQueryParamMatch) string {
 	})
 	var s strings.Builder
 	for _, qp := range qpCopy {
-		s.WriteString(qp.Name + ":" + string(qp.ValueType) + ":" + qp.Value + ";")
+		_, _ = s.WriteString(qp.Name + ":" + string(qp.ValueType) + ":" + qp.Value + ";")
 	}
 	return s.String()
 }
