@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -1698,14 +1698,14 @@ func TestExtractPolicy(t *testing.T) {
 
 var _ = Describe("RecordDomainEventsForIngress", func() {
 	var driver *Driver
-	var fakeRecorder *record.FakeRecorder
+	var fakeRecorder *events.FakeRecorder
 	var scheme = runtime.NewScheme()
 
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(ingressv1alpha1.AddToScheme(scheme))
 
 	BeforeEach(func() {
-		fakeRecorder = record.NewFakeRecorder(10)
+		fakeRecorder = events.NewFakeRecorder(10)
 		driver = NewDriver(
 			GinkgoLogr,
 			scheme,

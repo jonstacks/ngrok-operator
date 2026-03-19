@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -67,7 +67,7 @@ type Driver struct {
 
 	defaultDomainReclaimPolicy *ingressv1alpha1.DomainReclaimPolicy
 
-	recorder record.EventRecorder
+	recorder events.EventRecorder
 
 	// drainState is used to check if the operator is draining.
 	// If draining, Sync() returns early to prevent creating new resources.
@@ -127,7 +127,7 @@ func WithDefaultDomainReclaimPolicy(policy ingressv1alpha1.DomainReclaimPolicy) 
 	}
 }
 
-func WithEventRecorder(recorder record.EventRecorder) DriverOpt {
+func WithEventRecorder(recorder events.EventRecorder) DriverOpt {
 	return func(d *Driver) {
 		d.recorder = recorder
 	}
@@ -770,8 +770,10 @@ func (d *Driver) recordDomainEventsForIngress(ingress *netv1.Ingress, domains ma
 		if readyCondition.Status == metav1.ConditionFalse {
 			d.recorder.Eventf(
 				ingress,
+				nil,
 				corev1.EventTypeWarning,
 				"DomainNotReady",
+				"Reconcile",
 				"Domain %q is not ready: %s",
 				rule.Host,
 				readyCondition.Message,

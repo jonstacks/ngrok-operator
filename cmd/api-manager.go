@@ -342,7 +342,7 @@ func runNormalMode(ctx context.Context, opts apiManagerOpts, k8sClient client.Cl
 	// - orchestrator is passed to KubernetesOperatorReconciler for executing drain
 	drainOrchestrator := drain.NewOrchestrator(drain.OrchestratorConfig{
 		Client:         mgr.GetClient(),
-		Recorder:       mgr.GetEventRecorderFor("drain-orchestrator"),
+		Recorder:       controller.NewEventRecorderAdapter(mgr.GetEventRecorderFor("drain-orchestrator")),
 		Log:            ctrl.Log.WithName("drain"),
 		K8sOpNamespace: opts.namespace,
 		K8sOpName:      opts.releaseName,
@@ -509,7 +509,7 @@ func getK8sResourceDriver(ctx context.Context, mgr manager.Manager, options apiM
 		managerdriver.WithClusterDomain(options.clusterDomain),
 		managerdriver.WithDisableGatewayReferenceGrants(options.disableGatewayReferenceGrants),
 		managerdriver.WithDefaultDomainReclaimPolicy(defaultDomainReclaimPolicy),
-		managerdriver.WithEventRecorder(mgr.GetEventRecorderFor("k8s-resource-driver")),
+		managerdriver.WithEventRecorder(controller.NewEventRecorderAdapter(mgr.GetEventRecorderFor("k8s-resource-driver"))),
 		managerdriver.WithDrainState(drainState),
 	}
 
@@ -613,7 +613,7 @@ func enableIngressFeatureSet(_ context.Context, opts apiManagerOpts, mgr ctrl.Ma
 		Client:   mgr.GetClient(),
 		Log:      ctrl.Log.WithName("controllers").WithName("traffic-policy"),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("policy-controller"),
+		Recorder: controller.NewEventRecorderAdapter(mgr.GetEventRecorderFor("policy-controller")),
 		Driver:   driver,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "TrafficPolicy")
@@ -764,7 +764,7 @@ func enableBindingsFeatureSet(_ context.Context, opts apiManagerOpts, mgr ctrl.M
 	if err := mgr.Add(&bindingscontroller.BoundEndpointPoller{
 		Client:                       mgr.GetClient(),
 		Log:                          ctrl.Log.WithName("controllers").WithName("BoundEndpointPoller"),
-		Recorder:                     mgr.GetEventRecorderFor("endpoint-binding-poller"),
+		Recorder:                     controller.NewEventRecorderAdapter(mgr.GetEventRecorderFor("endpoint-binding-poller")),
 		Namespace:                    opts.namespace,
 		KubernetesOperatorConfigName: opts.releaseName,
 		TargetServiceAnnotations:     targetServiceAnnotations,
