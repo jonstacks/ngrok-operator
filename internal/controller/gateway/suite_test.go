@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	controller "github.com/ngrok/ngrok-operator/internal/controller"
 	"github.com/ngrok/ngrok-operator/internal/controller/ingress"
 	"github.com/ngrok/ngrok-operator/internal/mocks/nmockapi"
 	"github.com/ngrok/ngrok-operator/internal/testutils"
@@ -155,7 +156,7 @@ var _ = BeforeSuite(func() {
 	err = (&ingress.DomainReconciler{
 		Client:        k8sManager.GetClient(),
 		Log:           logf.Log.WithName("controllers").WithName("Domain"),
-		Recorder:      k8sManager.GetEventRecorderFor("domain-controller"),
+		Recorder:      controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("domain-controller")),
 		Scheme:        k8sManager.GetScheme(),
 		DomainsClient: domainClient,
 	}).SetupWithManager(k8sManager)

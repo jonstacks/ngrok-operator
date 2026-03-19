@@ -30,6 +30,7 @@ import (
 
 	ingressv1alpha1 "github.com/ngrok/ngrok-operator/api/ingress/v1alpha1"
 	ngrokv1alpha1 "github.com/ngrok/ngrok-operator/api/ngrok/v1alpha1"
+	controller "github.com/ngrok/ngrok-operator/internal/controller"
 	"github.com/ngrok/ngrok-operator/internal/controller/labels"
 	"github.com/ngrok/ngrok-operator/internal/mocks/nmockapi"
 	"github.com/ngrok/ngrok-operator/internal/testutils"
@@ -114,7 +115,7 @@ var _ = BeforeSuite(func() {
 		Client:         k8sManager.GetClient(),
 		Scheme:         k8sManager.GetScheme(),
 		Log:            logf.Log.WithName("cloudendpoint-controller"),
-		Recorder:       k8sManager.GetEventRecorderFor("cloudendpoint-controller"),
+		Recorder:       controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("cloudendpoint-controller")),
 		NgrokClientset: mockClientset,
 		// Let SetupWithManager create the default domain manager
 		// We'll use internal domains in tests to bypass actual domain creation

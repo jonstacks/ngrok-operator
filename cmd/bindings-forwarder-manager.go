@@ -46,6 +46,7 @@ import (
 	bindingsv1alpha1 "github.com/ngrok/ngrok-operator/api/bindings/v1alpha1"
 	ngrokv1alpha1 "github.com/ngrok/ngrok-operator/api/ngrok/v1alpha1"
 	bindingscontroller "github.com/ngrok/ngrok-operator/internal/controller/bindings"
+	controller "github.com/ngrok/ngrok-operator/internal/controller"
 	"github.com/ngrok/ngrok-operator/internal/drain"
 	"github.com/ngrok/ngrok-operator/internal/util"
 	"github.com/ngrok/ngrok-operator/internal/version"
@@ -148,7 +149,7 @@ func runController(_ context.Context, opts bindingsForwarderManagerOpts) error {
 		Client:                 mgr.GetClient(),
 		Log:                    ctrl.Log.WithName("controllers").WithName("bindings-forwarder"),
 		Scheme:                 mgr.GetScheme(),
-		Recorder:               mgr.GetEventRecorderFor("bindings-forwarder-controller"),
+		Recorder:               controller.NewEventRecorderAdapter(mgr.GetEventRecorderFor("bindings-forwarder-controller")),
 		BindingsDriver:         bd,
 		KubernetesOperatorName: opts.releaseName,
 		RootCAs:                certPool,

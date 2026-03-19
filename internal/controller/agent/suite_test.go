@@ -7,6 +7,7 @@ import (
 
 	ingressv1alpha1 "github.com/ngrok/ngrok-operator/api/ingress/v1alpha1"
 	ngrokv1alpha1 "github.com/ngrok/ngrok-operator/api/ngrok/v1alpha1"
+	controller "github.com/ngrok/ngrok-operator/internal/controller"
 	"github.com/ngrok/ngrok-operator/internal/controller/labels"
 	"github.com/ngrok/ngrok-operator/internal/testutils"
 	"github.com/ngrok/ngrok-operator/pkg/agent"
@@ -100,7 +101,7 @@ var _ = BeforeSuite(func() {
 		Client:           envMgr.GetClient(),
 		Log:              logf.Log.WithName("env-agent-endpoint-controller"),
 		Scheme:           envMgr.GetScheme(),
-		Recorder:         envMgr.GetEventRecorderFor("env-agent-endpoint-controller"),
+		Recorder:         controller.NewEventRecorderAdapter(envMgr.GetEventRecorderFor("env-agent-endpoint-controller")),
 		AgentDriver:      envMockDriver,
 		ControllerLabels: labels.NewControllerLabelValues(controllerNamespace, controllerName),
 	}
@@ -163,7 +164,7 @@ var _ = BeforeSuite(func() {
 		Client:           nsMgr.GetClient(),
 		Log:              logf.Log.WithName("ns-filter-test-controller"),
 		Scheme:           nsMgr.GetScheme(),
-		Recorder:         nsMgr.GetEventRecorderFor("ns-filter-test-controller"),
+		Recorder:         controller.NewEventRecorderAdapter(nsMgr.GetEventRecorderFor("ns-filter-test-controller")),
 		AgentDriver:      nsMockDriver,
 		ControllerLabels: labels.NewControllerLabelValues(controllerNamespace, controllerName),
 	}
