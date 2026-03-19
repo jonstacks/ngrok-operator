@@ -154,8 +154,8 @@ func (r *DomainReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Requeue if the domain is not ready
 	if !IsDomainReady(domain) {
-		// Requeue the event relying on the controllers custom RateLimiter for exponential backoff
-		return ctrl.Result{Requeue: true}, nil
+		// Requeue the event after a short delay
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 
 	return result, nil

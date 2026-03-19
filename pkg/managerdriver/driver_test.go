@@ -1253,20 +1253,20 @@ var _ = Describe("Driver", func() {
 		It("HandleSyncResult converts ErrSyncRequeue to Requeue", func() {
 			result, err := HandleSyncResult(ErrSyncRequeue)
 			Expect(err).To(BeNil())
-			Expect(result.Requeue).To(BeTrue())
+			Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 		})
 
 		It("HandleSyncResult passes through real errors", func() {
 			realErr := errors.New("something went wrong")
 			result, err := HandleSyncResult(realErr)
 			Expect(err).To(Equal(realErr))
-			Expect(result.Requeue).To(BeFalse())
+			Expect(result.RequeueAfter).To(BeZero())
 		})
 
 		It("HandleSyncResult passes through nil", func() {
 			result, err := HandleSyncResult(nil)
 			Expect(err).To(BeNil())
-			Expect(result.Requeue).To(BeFalse())
+			Expect(result.RequeueAfter).To(BeZero())
 		})
 	})
 

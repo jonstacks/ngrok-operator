@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 	"golang.org/x/sync/errgroup"
@@ -558,18 +559,18 @@ func (d *Driver) syncStart(partial bool) (bool, func(ctx context.Context) error)
 // ErrSyncRequeue is a sentinel returned by the sync debouncer to indicate that
 // a sync completed while the caller was waiting, and the caller should requeue
 // to ensure its store changes are captured in a subsequent sync. This is not a
-// real error — reconcilers should convert it to ctrl.Result{Requeue: true}
+// real error — reconcilers should convert it to ctrl.Result{RequeueAfter: time.Second}
 // using HandleSyncResult.
 var ErrSyncRequeue = errors.New("sync requeue requested")
 
 // HandleSyncResult converts a Sync or SyncEndpoints error into a
 // controller-runtime reconcile result. If the error is ErrSyncRequeue it
-// returns ctrl.Result{Requeue: true} with a nil error so controller-runtime
+// returns ctrl.Result{RequeueAfter: time.Second} with a nil error so controller-runtime
 // requeues without logging an error or applying exponential backoff. Real
 // errors are passed through unchanged.
 func HandleSyncResult(err error) (ctrl.Result, error) {
 	if err == ErrSyncRequeue {
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 	return ctrl.Result{}, err
 }
