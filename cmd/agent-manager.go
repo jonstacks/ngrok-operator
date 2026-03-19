@@ -46,6 +46,7 @@ import (
 	ingressv1alpha1 "github.com/ngrok/ngrok-operator/api/ingress/v1alpha1"
 	ngrokv1alpha1 "github.com/ngrok/ngrok-operator/api/ngrok/v1alpha1"
 	agentcontroller "github.com/ngrok/ngrok-operator/internal/controller/agent"
+
 	"github.com/ngrok/ngrok-operator/internal/controller/labels"
 	"github.com/ngrok/ngrok-operator/internal/drain"
 	"github.com/ngrok/ngrok-operator/internal/healthcheck"
@@ -205,7 +206,7 @@ func runAgentController(_ context.Context, opts agentManagerOpts) error {
 		Client:                     mgr.GetClient(),
 		Log:                        ctrl.Log.WithName("controllers").WithName("agentendpoint"),
 		Scheme:                     mgr.GetScheme(),
-		Recorder:                   mgr.GetEventRecorderFor("agentendpoint-controller"),
+		Recorder:                   mgr.GetEventRecorder("agentendpoint-controller"),
 		AgentDriver:                ad,
 		DefaultDomainReclaimPolicy: defaultDomainReclaimPolicy,
 		ControllerLabels:           labels.NewControllerLabelValues(opts.namespace, opts.managerName),

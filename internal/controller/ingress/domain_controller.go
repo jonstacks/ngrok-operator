@@ -32,7 +32,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,7 +54,7 @@ type DomainReconciler struct {
 
 	Log           logr.Logger
 	Scheme        *runtime.Scheme
-	Recorder      record.EventRecorder
+	Recorder      events.EventRecorder
 	DomainsClient ngrokapi.DomainClient
 	DrainState    basecontroller.DrainState
 
@@ -154,8 +154,8 @@ func (r *DomainReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Requeue if the domain is not ready
 	if !IsDomainReady(domain) {
-		// Requeue the event relying on the controllers custom RateLimiter for exponential backoff
-		return ctrl.Result{Requeue: true}, nil
+		// Requeue the event after a short delay
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 
 	return result, nil
