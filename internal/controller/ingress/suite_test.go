@@ -38,7 +38,6 @@ import (
 
 	ingressv1alpha1 "github.com/ngrok/ngrok-operator/api/ingress/v1alpha1"
 	ngrokv1alpha1 "github.com/ngrok/ngrok-operator/api/ngrok/v1alpha1"
-	controller "github.com/ngrok/ngrok-operator/internal/controller"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -144,7 +143,7 @@ var _ = BeforeSuite(func() {
 	err = (&DomainReconciler{
 		Client:        k8sManager.GetClient(),
 		Log:           logf.Log.WithName("controllers").WithName("Domain"),
-		Recorder:      controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("domain-controller")),
+		Recorder:      k8sManager.GetEventRecorder("domain-controller"),
 		Scheme:        k8sManager.GetScheme(),
 		DomainsClient: domainClient,
 	}).SetupWithManager(k8sManager)
@@ -157,7 +156,7 @@ var _ = BeforeSuite(func() {
 	err = (&IPPolicyReconciler{
 		Client:              k8sManager.GetClient(),
 		Log:                 logf.Log.WithName("controllers").WithName("IPPolicy"),
-		Recorder:            controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("ippolicy-controller")),
+		Recorder:            k8sManager.GetEventRecorder("ippolicy-controller"),
 		Scheme:              k8sManager.GetScheme(),
 		IPPoliciesClient:    ipPolicyClient,
 		IPPolicyRulesClient: ipPolicyRuleClient,

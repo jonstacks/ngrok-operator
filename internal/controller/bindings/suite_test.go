@@ -33,7 +33,6 @@ import (
 	bindingsv1alpha1 "github.com/ngrok/ngrok-operator/api/bindings/v1alpha1"
 	ingressv1alpha1 "github.com/ngrok/ngrok-operator/api/ingress/v1alpha1"
 	ngrokv1alpha1 "github.com/ngrok/ngrok-operator/api/ngrok/v1alpha1"
-	controller "github.com/ngrok/ngrok-operator/internal/controller"
 	"github.com/ngrok/ngrok-operator/internal/mocks/nmockapi"
 	"github.com/ngrok/ngrok-operator/internal/testutils"
 	"github.com/ngrok/ngrok-operator/pkg/bindingsdriver"
@@ -134,7 +133,7 @@ var _ = BeforeSuite(func() {
 		Client:        k8sManager.GetClient(),
 		Scheme:        k8sManager.GetScheme(),
 		Log:           logf.Log.WithName("boundendpoint-controller"),
-		Recorder:      controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("boundendpoint-controller")),
+		Recorder:      k8sManager.GetEventRecorder("boundendpoint-controller"),
 		ClusterDomain: "cluster.local",
 	}
 	err = controllerReconciler.SetupWithManager(k8sManager)
@@ -145,7 +144,7 @@ var _ = BeforeSuite(func() {
 		Client:                 k8sManager.GetClient(),
 		Scheme:                 k8sManager.GetScheme(),
 		Log:                    logf.Log.WithName("forwarder-controller"),
-		Recorder:               controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("forwarder-controller")),
+		Recorder:               k8sManager.GetEventRecorder("forwarder-controller"),
 		BindingsDriver:         bindingsdriver.New(),
 		KubernetesOperatorName: "test-op",
 	}
@@ -156,7 +155,7 @@ var _ = BeforeSuite(func() {
 	pollerController = &BoundEndpointPoller{
 		Client:                       k8sManager.GetClient(),
 		Log:                          logf.Log.WithName("boundendpoint-poller"),
-		Recorder:                     k8sManager.GetEventRecorderFor("boundendpoint-poller"),
+		Recorder:                     k8sManager.GetEventRecorder("boundendpoint-poller"),
 		Namespace:                    "ngrok-op",
 		KubernetesOperatorConfigName: "test-k8sop",
 		NgrokClientset:               mockClientset,

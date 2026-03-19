@@ -31,7 +31,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	controller "github.com/ngrok/ngrok-operator/internal/controller"
 	"github.com/ngrok/ngrok-operator/internal/controller/ingress"
 	"github.com/ngrok/ngrok-operator/internal/mocks/nmockapi"
 	"github.com/ngrok/ngrok-operator/internal/testutils"
@@ -156,7 +155,7 @@ var _ = BeforeSuite(func() {
 	err = (&ingress.DomainReconciler{
 		Client:        k8sManager.GetClient(),
 		Log:           logf.Log.WithName("controllers").WithName("Domain"),
-		Recorder:      controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("domain-controller")),
+		Recorder:      k8sManager.GetEventRecorder("domain-controller"),
 		Scheme:        k8sManager.GetScheme(),
 		DomainsClient: domainClient,
 	}).SetupWithManager(k8sManager)
@@ -165,7 +164,7 @@ var _ = BeforeSuite(func() {
 	err = (&GatewayClassReconciler{
 		Client:   k8sManager.GetClient(),
 		Log:      logf.Log.WithName("controllers").WithName("GatewayClass"),
-		Recorder: controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("gatewayclass-controller")),
+		Recorder: k8sManager.GetEventRecorder("gatewayclass-controller"),
 		Scheme:   k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
@@ -174,7 +173,7 @@ var _ = BeforeSuite(func() {
 		Client:   k8sManager.GetClient(),
 		Log:      logf.Log.WithName("controllers").WithName("Gateway"),
 		Scheme:   k8sManager.GetScheme(),
-		Recorder: controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("gateway-controller")),
+		Recorder: k8sManager.GetEventRecorder("gateway-controller"),
 		Driver:   driver,
 	}).SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
@@ -183,7 +182,7 @@ var _ = BeforeSuite(func() {
 		Client:   k8sManager.GetClient(),
 		Log:      logf.Log.WithName("controllers").WithName("HTTPRoute"),
 		Scheme:   k8sManager.GetScheme(),
-		Recorder: controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("httproute-controller")),
+		Recorder: k8sManager.GetEventRecorder("httproute-controller"),
 		Driver:   driver,
 	}).SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
@@ -191,7 +190,7 @@ var _ = BeforeSuite(func() {
 	err = (&TCPRouteReconciler{
 		Client:   k8sManager.GetClient(),
 		Log:      logf.Log.WithName("controllers").WithName("TCPRoute"),
-		Recorder: controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("tcproute-controller")),
+		Recorder: k8sManager.GetEventRecorder("tcproute-controller"),
 		Scheme:   k8sManager.GetScheme(),
 		Driver:   driver,
 	}).SetupWithManager(k8sManager)
@@ -200,7 +199,7 @@ var _ = BeforeSuite(func() {
 	err = (&TLSRouteReconciler{
 		Client:   k8sManager.GetClient(),
 		Log:      logf.Log.WithName("controllers").WithName("TLSRoute"),
-		Recorder: controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("tlsroute-controller")),
+		Recorder: k8sManager.GetEventRecorder("tlsroute-controller"),
 		Scheme:   k8sManager.GetScheme(),
 		Driver:   driver,
 	}).SetupWithManager(k8sManager)
