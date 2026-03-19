@@ -165,7 +165,7 @@ var _ = BeforeSuite(func() {
 	err = (&GatewayClassReconciler{
 		Client:   k8sManager.GetClient(),
 		Log:      logf.Log.WithName("controllers").WithName("GatewayClass"),
-		Recorder: k8sManager.GetEventRecorderFor("gatewayclass-controller"),
+		Recorder: controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("gatewayclass-controller")),
 		Scheme:   k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
@@ -174,7 +174,7 @@ var _ = BeforeSuite(func() {
 		Client:   k8sManager.GetClient(),
 		Log:      logf.Log.WithName("controllers").WithName("Gateway"),
 		Scheme:   k8sManager.GetScheme(),
-		Recorder: k8sManager.GetEventRecorderFor("gateway-controller"),
+		Recorder: controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("gateway-controller")),
 		Driver:   driver,
 	}).SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
@@ -183,7 +183,7 @@ var _ = BeforeSuite(func() {
 		Client:   k8sManager.GetClient(),
 		Log:      logf.Log.WithName("controllers").WithName("HTTPRoute"),
 		Scheme:   k8sManager.GetScheme(),
-		Recorder: k8sManager.GetEventRecorderFor("httproute-controller"),
+		Recorder: controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("httproute-controller")),
 		Driver:   driver,
 	}).SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
@@ -191,7 +191,7 @@ var _ = BeforeSuite(func() {
 	err = (&TCPRouteReconciler{
 		Client:   k8sManager.GetClient(),
 		Log:      logf.Log.WithName("controllers").WithName("TCPRoute"),
-		Recorder: k8sManager.GetEventRecorderFor("tcproute-controller"),
+		Recorder: controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("tcproute-controller")),
 		Scheme:   k8sManager.GetScheme(),
 		Driver:   driver,
 	}).SetupWithManager(k8sManager)
@@ -200,7 +200,7 @@ var _ = BeforeSuite(func() {
 	err = (&TLSRouteReconciler{
 		Client:   k8sManager.GetClient(),
 		Log:      logf.Log.WithName("controllers").WithName("TLSRoute"),
-		Recorder: k8sManager.GetEventRecorderFor("tlsroute-controller"),
+		Recorder: controller.NewEventRecorderAdapter(k8sManager.GetEventRecorderFor("tlsroute-controller")),
 		Scheme:   k8sManager.GetScheme(),
 		Driver:   driver,
 	}).SetupWithManager(k8sManager)

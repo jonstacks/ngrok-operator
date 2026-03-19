@@ -643,7 +643,7 @@ func enableGatewayFeatureSet(_ context.Context, opts apiManagerOpts, mgr ctrl.Ma
 		Client:   mgr.GetClient(),
 		Log:      ctrl.Log.WithName("controllers").WithName("GatewayClass"),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("gateway-class"),
+		Recorder: controller.NewEventRecorderAdapter(mgr.GetEventRecorderFor("gateway-class")),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GatewayClass")
 		os.Exit(1)
@@ -653,7 +653,7 @@ func enableGatewayFeatureSet(_ context.Context, opts apiManagerOpts, mgr ctrl.Ma
 		Client:     mgr.GetClient(),
 		Log:        ctrl.Log.WithName("controllers").WithName("Gateway"),
 		Scheme:     mgr.GetScheme(),
-		Recorder:   mgr.GetEventRecorderFor("gateway-controller"),
+		Recorder:   controller.NewEventRecorderAdapter(mgr.GetEventRecorderFor("gateway-controller")),
 		Driver:     driver,
 		DrainState: drainState,
 	}).SetupWithManager(mgr); err != nil {
@@ -665,7 +665,7 @@ func enableGatewayFeatureSet(_ context.Context, opts apiManagerOpts, mgr ctrl.Ma
 		Client:     mgr.GetClient(),
 		Log:        ctrl.Log.WithName("controllers").WithName("Gateway"),
 		Scheme:     mgr.GetScheme(),
-		Recorder:   mgr.GetEventRecorderFor("gateway-controller"),
+		Recorder:   controller.NewEventRecorderAdapter(mgr.GetEventRecorderFor("gateway-controller")),
 		Driver:     driver,
 		DrainState: drainState,
 	}).SetupWithManager(mgr); err != nil {
@@ -678,7 +678,7 @@ func enableGatewayFeatureSet(_ context.Context, opts apiManagerOpts, mgr ctrl.Ma
 			Client:     mgr.GetClient(),
 			Log:        ctrl.Log.WithName("controllers").WithName("TCPRoute"),
 			Scheme:     mgr.GetScheme(),
-			Recorder:   mgr.GetEventRecorderFor("tcp-route"),
+			Recorder:   controller.NewEventRecorderAdapter(mgr.GetEventRecorderFor("tcp-route")),
 			Driver:     driver,
 			DrainState: drainState,
 		}).SetupWithManager(mgr); err != nil {
@@ -692,7 +692,7 @@ func enableGatewayFeatureSet(_ context.Context, opts apiManagerOpts, mgr ctrl.Ma
 			Client:     mgr.GetClient(),
 			Log:        ctrl.Log.WithName("controllers").WithName("TLSRoute"),
 			Scheme:     mgr.GetScheme(),
-			Recorder:   mgr.GetEventRecorderFor("tls-route"),
+			Recorder:   controller.NewEventRecorderAdapter(mgr.GetEventRecorderFor("tls-route")),
 			Driver:     driver,
 			DrainState: drainState,
 		}).SetupWithManager(mgr); err != nil {
@@ -706,7 +706,7 @@ func enableGatewayFeatureSet(_ context.Context, opts apiManagerOpts, mgr ctrl.Ma
 		Client:   mgr.GetClient(),
 		Log:      ctrl.Log.WithName("controllers").WithName("Gateway"),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("gateway-controller"),
+		Recorder: controller.NewEventRecorderAdapter(mgr.GetEventRecorderFor("gateway-controller")),
 		Driver:   driver,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
@@ -719,7 +719,7 @@ func enableGatewayFeatureSet(_ context.Context, opts apiManagerOpts, mgr ctrl.Ma
 			Client:   mgr.GetClient(),
 			Log:      ctrl.Log.WithName("controllers").WithName("Gateway"),
 			Scheme:   mgr.GetScheme(),
-			Recorder: mgr.GetEventRecorderFor("gateway-controller"),
+			Recorder: controller.NewEventRecorderAdapter(mgr.GetEventRecorderFor("gateway-controller")),
 			Driver:   driver,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ReferenceGrant")
