@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v8"
 	"k8s.io/apimachinery/pkg/util/rand"
 )
 
@@ -115,4 +115,9 @@ func isNgrokManagedDomain(domain *ngrok.ReservedDomain) bool {
 	return slices.ContainsFunc(ngrokManagedDomainSuffixes, func(suffix string) bool {
 		return strings.HasSuffix(domain.Domain, suffix)
 	})
+}
+
+// List overrides baseClient.List to accept FilteredPaging (required by DomainClient interface).
+func (m *DomainClient) List(_ *ngrok.FilteredPaging) ngrok.Iter[*ngrok.ReservedDomain] {
+	return m.FilteredList(nil)
 }

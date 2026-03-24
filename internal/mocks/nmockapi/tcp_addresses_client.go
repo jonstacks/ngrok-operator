@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v8"
 )
 
 type TCPAddressesClient struct {
@@ -42,4 +42,9 @@ func (m *TCPAddressesClient) Create(_ context.Context, item *ngrok.ReservedAddrC
 
 func (m *TCPAddressesClient) Update(_ context.Context, _ *ngrok.ReservedAddrUpdate) (*ngrok.ReservedAddr, error) {
 	return nil, errors.New("not implemented")
+}
+
+// List overrides baseClient.List to accept FilteredPaging (required by TCPAddressesClient interface).
+func (m *TCPAddressesClient) List(_ *ngrok.FilteredPaging) ngrok.Iter[*ngrok.ReservedAddr] {
+	return m.FilteredList(nil)
 }
