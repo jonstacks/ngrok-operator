@@ -50,6 +50,7 @@ func (m *EndpointsClient) Create(_ context.Context, item *ngrok.EndpointCreate) 
 }
 
 func (m *EndpointsClient) Update(ctx context.Context, item *ngrok.EndpointUpdate) (*ngrok.Endpoint, error) {
+	m.updateCallCount++
 	if m.updateError != nil {
 		return nil, m.updateError
 	}

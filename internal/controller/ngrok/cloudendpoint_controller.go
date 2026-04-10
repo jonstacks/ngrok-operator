@@ -227,6 +227,15 @@ func (r *CloudEndpointReconciler) update(ctx context.Context, clep *ngrokv1alpha
 		return r.updateStatus(ctx, clep, nil, domainResult, err)
 	}
 
+	// If the domain is not ready, just update status and requeue.
+	// The endpoint already exists in the ngrok API, so there's no need to
+	// push an update on every requeue cycle. When the domain becomes ready,
+	// the domain watch will trigger a new reconciliation.
+	if domainResult != nil && !domainResult.IsReady {
+		setCloudEndpointCreatedCondition(clep, true, ReasonCloudEndpointCreated, "CloudEndpoint updated successfully")
+		return r.updateStatus(ctx, clep, nil, domainResult, nil)
+	}
+
 	policy, err := r.getTrafficPolicy(ctx, clep)
 	if err != nil {
 		return r.updateStatus(ctx, clep, nil, domainResult, err)
