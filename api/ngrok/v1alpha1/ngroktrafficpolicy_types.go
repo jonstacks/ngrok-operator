@@ -54,10 +54,14 @@ type NgrokTrafficPolicyStatus struct {
 
 // NgrokTrafficPolicy is the Schema for the ngroktrafficpolicies API
 type NgrokTrafficPolicy struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard object metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   NgrokTrafficPolicySpec   `json:"spec,omitempty"`
+	// spec defines the desired state of NgrokTrafficPolicy.
+	Spec NgrokTrafficPolicySpec `json:"spec,omitempty"`
+	// status defines the observed state of NgrokTrafficPolicy.
 	Status NgrokTrafficPolicyStatus `json:"status,omitempty"`
 }
 

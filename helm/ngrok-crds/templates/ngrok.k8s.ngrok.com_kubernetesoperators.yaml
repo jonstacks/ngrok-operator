@@ -60,55 +60,58 @@ spec:
           metadata:
             type: object
           spec:
+            description: spec defines the desired state of KubernetesOperator.
             properties:
               binding:
-                description: Configuration for the binding feature of this Kubernetes
-                  Operator
+                description: binding is the configuration for the binding feature
+                  of this Kubernetes Operator
                 properties:
                   endpointSelectors:
-                    description: EndpointSelectors is a list of cel expression that
+                    description: endpointSelectors is a list of cel expression that
                       determine which kubernetes-bound Endpoints will be created by
                       the operator
                     items:
                       type: string
                     type: array
                   ingressEndpoint:
-                    description: The public ingress endpoint for this Kubernetes Operator
+                    description: ingressEndpoint is the public ingress endpoint for
+                      this Kubernetes Operator
                     type: string
                   tlsSecretName:
                     default: default-tls
-                    description: TlsSecretName is the name of the k8s secret that
+                    description: tlsSecretName is the name of the k8s secret that
                       contains the TLS private/public keys to use for the ngrok forwarding
                       endpoint
                     type: string
                 required:
                 - endpointSelectors
-                - tlsSecretName
                 type: object
               deployment:
-                description: Deployment information of this Kubernetes Operator
+                description: deployment contains information of this Kubernetes Operator
                 properties:
                   name:
-                    description: Name is the name of the k8s deployment for the operator
+                    description: name is the name of the k8s deployment for the operator
                     type: string
                   namespace:
-                    description: The namespace in which the operator is deployed
+                    description: namespace is the namespace in which the operator
+                      is deployed
                     type: string
                   version:
-                    description: The version of the operator that is currently running
+                    description: version is the version of the operator that is currently
+                      running
                     type: string
                 type: object
               description:
                 default: Created by ngrok-operator
-                description: Description is a human-readable description of the object
+                description: description is a human-readable description of the object
                   in the ngrok API/Dashboard
                 type: string
               drain:
-                description: Drain configures the drain behavior for uninstall
+                description: drain configures the drain behavior for uninstall
                 properties:
                   policy:
                     default: Retain
-                    description: Policy determines whether to delete ngrok API resources
+                    description: policy determines whether to delete ngrok API resources
                       or just remove finalizers
                     enum:
                     - Delete
@@ -116,7 +119,8 @@ spec:
                     type: string
                 type: object
               enabledFeatures:
-                description: Features enabled for this Kubernetes Operator
+                description: enabledFeatures is the list of features enabled for this
+                  Kubernetes Operator
                 items:
                   enum:
                   - ingress
@@ -126,41 +130,42 @@ spec:
                 type: array
               metadata:
                 default: '{"owned-by":"ngrok-operator"}'
-                description: Metadata is a string of arbitrary data associated with
+                description: metadata is a string of arbitrary data associated with
                   the object in the ngrok API/Dashboard
                 type: string
               region:
                 default: global
                 description: |-
-                  The ngrok region in which the ingress for this operator is served. Defaults to
+                  region is the ngrok region in which the ingress for this operator is served. Defaults to
                   "global" if not specified.
                 type: string
             type: object
           status:
-            description: KubernetesOperatorStatus defines the observed state of KubernetesOperator
+            description: status defines the observed state of KubernetesOperator.
             properties:
               bindingsIngressEndpoint:
                 description: |-
-                  BindingsIngressEndpoint is the URL that the operator will use to talk
+                  bindingsIngressEndpoint is the URL that the operator will use to talk
                   to the ngrok edge when forwarding traffic for k8s-bound endpoints
                 type: string
               drainErrors:
-                description: DrainErrors contains the most recent errors encountered
+                description: drainErrors contains the most recent errors encountered
                   during drain
                 items:
                   type: string
                 type: array
+                x-kubernetes-list-type: atomic
               drainMessage:
-                description: DrainMessage provides additional information about the
+                description: drainMessage provides additional information about the
                   drain status
                 type: string
               drainProgress:
                 description: |-
-                  DrainProgress indicates how many resources have been drained vs total
+                  drainProgress indicates how many resources have been drained vs total
                   Format: "X/Y" where X is processed (completed + failed) and Y is total
                 type: string
               drainStatus:
-                description: DrainStatus indicates the current state of the drain
+                description: drainStatus indicates the current state of the drain
                   process
                 enum:
                 - pending
@@ -169,24 +174,24 @@ spec:
                 - failed
                 type: string
               enabledFeatures:
-                description: EnabledFeatures is the string representation of the features
+                description: enabledFeatures is the string representation of the features
                   enabled for this Kubernetes Operator
                 type: string
               errorMessage:
-                description: RegistrationErrorMessage is a free-form error message
-                  if the status is error
+                description: errorMessage is a free-form error message if the status
+                  is error
                 maxLength: 4096
                 type: string
               id:
-                description: ID is the unique identifier for this Kubernetes Operator
+                description: id is the unique identifier for this Kubernetes Operator
                 type: string
               registrationErrorCode:
-                description: RegistrationErrorCode is the returned ngrok error code
+                description: registrationErrorCode is the returned ngrok error code
                 pattern: ^ERR_NGROK_\d+$
                 type: string
               registrationStatus:
                 default: pending
-                description: RegistrationStatus is the status of the registration
+                description: registrationStatus is the status of the registration
                   of this Kubernetes Operator with the ngrok API
                 enum:
                 - registered
@@ -194,7 +199,7 @@ spec:
                 - pending
                 type: string
               uri:
-                description: URI is the URI for this Kubernetes Operator
+                description: uri is the URI for this Kubernetes Operator
                 type: string
             type: object
         type: object

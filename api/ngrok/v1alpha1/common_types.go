@@ -32,17 +32,18 @@ import (
 
 // K8sObjectRef defines a reference to a Kubernetes Object
 type K8sObjectRef struct {
-	// The name of the Kubernetes resource being referenced
-	// +kubebuilder:validation:Required
+	// name is the name of the Kubernetes resource being referenced
+	// +required
 	Name string `json:"name"`
 }
 
 type K8sObjectRefOptionalNamespace struct {
-	// The name of the Kubernetes resource being referenced
-	// +kubebuilder:validation:Required
+	// name is the name of the Kubernetes resource being referenced
+	// +required
 	Name string `json:"name"`
 
-	// The namespace of the Kubernetes resource being referenced
+	// namespace is the namespace of the Kubernetes resource being referenced
+	// +optional
 	Namespace *string `json:"namespace,omitempty"`
 }
 

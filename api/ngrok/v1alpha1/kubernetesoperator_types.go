@@ -32,68 +32,82 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type KubernetesOperatorDeployment struct {
-	// Name is the name of the k8s deployment for the operator
+	// name is the name of the k8s deployment for the operator
+	// +optional
 	Name string `json:"name,omitempty"`
-	// The namespace in which the operator is deployed
+	// namespace is the namespace in which the operator is deployed
+	// +optional
 	Namespace string `json:"namespace,omitempty"`
-	// The version of the operator that is currently running
+	// version is the version of the operator that is currently running
+	// +optional
 	Version string `json:"version,omitempty"`
 }
 
 type KubernetesOperatorBinding struct {
-	// EndpointSelectors is a list of cel expression that determine which kubernetes-bound Endpoints will be created by the operator
-	// +kubebuilder:validation:Required
+	// endpointSelectors is a list of cel expression that determine which kubernetes-bound Endpoints will be created by the operator
+	// +required
 	EndpointSelectors []string `json:"endpointSelectors,omitempty"`
 
-	// The public ingress endpoint for this Kubernetes Operator
+	// ingressEndpoint is the public ingress endpoint for this Kubernetes Operator
+	// +optional
 	IngressEndpoint *string `json:"ingressEndpoint,omitempty"`
 
-	// TlsSecretName is the name of the k8s secret that contains the TLS private/public keys to use for the ngrok forwarding endpoint
-	// +kubebuilder:validation:Required
+	// tlsSecretName is the name of the k8s secret that contains the TLS private/public keys to use for the ngrok forwarding endpoint
 	// +kubebuilder:default="default-tls"
+	// +optional
 	TlsSecretName string `json:"tlsSecretName"`
 }
 
 // KubernetesOperatorStatus defines the observed state of KubernetesOperator
 type KubernetesOperatorStatus struct {
-	// ID is the unique identifier for this Kubernetes Operator
+	// id is the unique identifier for this Kubernetes Operator
+	// +optional
 	ID string `json:"id,omitempty"`
 
-	// URI is the URI for this Kubernetes Operator
+	// uri is the URI for this Kubernetes Operator
+	// +optional
 	URI string `json:"uri,omitempty"`
 
-	// RegistrationStatus is the status of the registration of this Kubernetes Operator with the ngrok API
+	// registrationStatus is the status of the registration of this Kubernetes Operator with the ngrok API
 	// +kubebuilder:validation:Enum=registered;error;pending
-	// +kubebuilder:default="pending"
+	// +default="pending"
 	RegistrationStatus string `json:"registrationStatus,omitempty"`
 
-	// RegistrationErrorCode is the returned ngrok error code
+	// registrationErrorCode is the returned ngrok error code
 	// +kubebuilder:validation:Pattern=`^ERR_NGROK_\d+$`
+	// +optional
 	RegistrationErrorCode string `json:"registrationErrorCode,omitempty"`
 
-	// RegistrationErrorMessage is a free-form error message if the status is error
+	// errorMessage is a free-form error message if the status is error
 	// +kubebuilder:validation:MaxLength=4096
+	// +optional
 	RegistrationErrorMessage string `json:"errorMessage,omitempty"`
 
-	// EnabledFeatures is the string representation of the features enabled for this Kubernetes Operator
+	// enabledFeatures is the string representation of the features enabled for this Kubernetes Operator
+	// +optional
 	EnabledFeatures string `json:"enabledFeatures,omitempty"`
 
-	// BindingsIngressEndpoint is the URL that the operator will use to talk
+	// bindingsIngressEndpoint is the URL that the operator will use to talk
 	// to the ngrok edge when forwarding traffic for k8s-bound endpoints
+	// +optional
 	BindingsIngressEndpoint string `json:"bindingsIngressEndpoint,omitempty"`
 
-	// DrainStatus indicates the current state of the drain process
+	// drainStatus indicates the current state of the drain process
+	// +optional
 	DrainStatus DrainStatus `json:"drainStatus,omitempty"`
 
-	// DrainMessage provides additional information about the drain status
+	// drainMessage provides additional information about the drain status
+	// +optional
 	DrainMessage string `json:"drainMessage,omitempty"`
 
-	// DrainProgress indicates how many resources have been drained vs total
+	// drainProgress indicates how many resources have been drained vs total
 	// Format: "X/Y" where X is processed (completed + failed) and Y is total
+	// +optional
 	DrainProgress string `json:"drainProgress,omitempty"`
 
-	// DrainErrors contains the most recent errors encountered during drain
+	// drainErrors contains the most recent errors encountered during drain
 	// +optional
+	// +listType=atomic
 	DrainErrors []string `json:"drainErrors,omitempty"`
 }
 
@@ -135,37 +149,41 @@ type KubernetesOperatorSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Description is a human-readable description of the object in the ngrok API/Dashboard
-	// +kubebuilder:default:=`Created by ngrok-operator`
+	// description is a human-readable description of the object in the ngrok API/Dashboard
+	// +default="Created by ngrok-operator"
 	Description string `json:"description,omitempty"`
 
-	// Metadata is a string of arbitrary data associated with the object in the ngrok API/Dashboard
-	// +kubebuilder:default:=`{"owned-by":"ngrok-operator"}`
+	// metadata is a string of arbitrary data associated with the object in the ngrok API/Dashboard
+	// +default="{\"owned-by\":\"ngrok-operator\"}"
 	Metadata string `json:"metadata,omitempty"`
 
-	// Features enabled for this Kubernetes Operator
+	// enabledFeatures is the list of features enabled for this Kubernetes Operator
 	// +kubebuilder:validation:items:Enum=ingress;gateway;bindings
+	// +optional
 	EnabledFeatures []string `json:"enabledFeatures,omitempty"`
 
-	// The ngrok region in which the ingress for this operator is served. Defaults to
+	// region is the ngrok region in which the ingress for this operator is served. Defaults to
 	// "global" if not specified.
-	// +kubebuilder:default="global"
+	// +default="global"
 	Region string `json:"region,omitempty"`
 
-	// Deployment information of this Kubernetes Operator
+	// deployment contains information of this Kubernetes Operator
+	// +optional
 	Deployment *KubernetesOperatorDeployment `json:"deployment,omitempty"`
 
-	// Configuration for the binding feature of this Kubernetes Operator
+	// binding is the configuration for the binding feature of this Kubernetes Operator
+	// +optional
 	Binding *KubernetesOperatorBinding `json:"binding,omitempty"`
 
-	// Drain configures the drain behavior for uninstall
+	// drain configures the drain behavior for uninstall
+	// +optional
 	Drain *DrainConfig `json:"drain,omitempty"`
 }
 
 // DrainConfig configures the drain behavior during operator uninstall
 type DrainConfig struct {
-	// Policy determines whether to delete ngrok API resources or just remove finalizers
-	// +kubebuilder:default=Retain
+	// policy determines whether to delete ngrok API resources or just remove finalizers
+	// +default="Retain"
 	Policy DrainPolicy `json:"policy,omitempty"`
 }
 
@@ -180,10 +198,14 @@ type DrainConfig struct {
 
 // KubernetesOperator is the Schema for the ngrok kubernetesoperators API
 type KubernetesOperator struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard object metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   KubernetesOperatorSpec   `json:"spec,omitempty"`
+	// spec defines the desired state of KubernetesOperator.
+	Spec KubernetesOperatorSpec `json:"spec,omitempty"`
+	// status defines the observed state of KubernetesOperator.
 	Status KubernetesOperatorStatus `json:"status,omitempty"`
 }
 
