@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__c6b9d9f5-9c3d-4e2f-b83d-efb4ae15c82b__notion-fetch",
+      "Bash(go build *)",
+      "Bash(go test *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:argo-cd.readthedocs.io)",
+      "Bash(nix develop *)",
+      "Bash(helm template *)",
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}
